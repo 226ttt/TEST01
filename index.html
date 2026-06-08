@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Spiritual Cosmic Portal</title>
+    <!-- Tailwind CSS for sleek UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for futuristic typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030008;
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Custom scrollbar for control panel if needed */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(10, 3, 20, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        /* Pulsing indicator */
+        .glow-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6)); }
+            50% { opacity: .4; transform: scale(0.95); filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.2)); }
+        }
+        /* Touch visualizer indicator */
+        #warp-indicator {
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.1s ease-out, opacity 0.15s;
+            mix-blend-mode: screen;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- Three.js Canvas container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Interactive Touch Ripple effect -->
+    <div id="warp-indicator" class="absolute w-24 h-24 border-2 border-dashed border-purple-500 rounded-full opacity-0 z-10 pointer-events-none"></div>
+
+    <!-- Ambient Grid Background Overlay for tech feel -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none z-1"></div>
+
+    <!-- TOP BAR HUD -->
+    <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none z-10">
+        <div class="flex flex-col pointer-events-auto">
+            <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-purple-500 glow-pulse"></span>
+                <h1 class="text-white text-2xl font-orbitron font-bold tracking-widest uppercase">
+                    Aetheris Gateway
+                </h1>
+            </div>
+            <p class="text-purple-300 text-xs tracking-widest font-mono uppercase mt-1">Status: Portal Resonance Online</p>
+        </div>
+        <div class="text-right pointer-events-auto hidden sm:block">
+            <p class="text-gray-400 text-xs font-mono">DIMENSION COORD: <span class="text-yellow-400 font-bold" id="dim-coords">X-703 // Y-082</span></p>
+            <p class="text-gray-400 text-xs font-mono mt-1">STABILITY FACTOR: <span class="text-green-400" id="stability-text">98.42%</span></p>
+        </div>
+    </div>
+
+    <!-- FLOATING INTERACTIVE HUD (CONTROL CONSOLE) -->
+    <div class="absolute bottom-6 left-6 right-6 md:left-auto md:right-6 md:top-24 md:bottom-auto md:w-80 glass-panel p-5 rounded-2xl text-white flex flex-col gap-4 z-10 select-none max-h-[80vh] overflow-y-auto">
+        <div class="border-b border-purple-500/20 pb-3 flex justify-between items-center">
+            <h2 class="font-orbitron font-bold text-sm tracking-widest text-purple-400 uppercase">Gateway Telemetry</h2>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/80 border border-purple-500/30 text-purple-300">SYSTEM V2.5</span>
+        </div>
+
+        <!-- Resonance Energy Slider -->
+        <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between text-xs font-mono text-gray-300">
+                <span>RESONANCE RANGE</span>
+                <span id="range-val" class="text-yellow-400 font-bold">1.0x</span>
+            </div>
+            <input type="range" id="portal-range" min="0.2" max="3.0" step="0.1" value="1.0" 
+                class="w-full h-1 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all hover:bg-purple-900">
+        </div>
+
+        <!-- Spin Speed Slider -->
+        <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between text-xs font-mono text-gray-300">
+                <span>ORBIT ROTATION</span>
+                <span id="speed-val" class="text-yellow-400 font-bold">1.0x</span>
+            </div>
+            <input type="range" id="portal-speed" min="0.1" max="4.0" step="0.1" value="1.0" 
+                class="w-full h-1 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all hover:bg-purple-900">
+        </div>
+
+        <!-- Star Dust Size -->
+        <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between text-xs font-mono text-gray-300">
+                <span>SINGULARITY DENSITY</span>
+                <span id="density-val" class="text-yellow-400 font-bold">1.0x</span>
+            </div>
+            <input type="range" id="particle-size" min="0.5" max="3.0" step="0.1" value="1.0" 
+                class="w-full h-1 bg-purple-950 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all hover:bg-purple-900">
+        </div>
+
+        <!-- Color Space Toggle -->
+        <div class="flex flex-col gap-2">
+            <span class="text-xs font-mono text-gray-300">ASTRAL COLOR FREQUENCY</span>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+                <button id="btn-col-violet" class="py-1.5 rounded-lg border border-purple-500/40 bg-purple-950/50 text-purple-300 hover:bg-purple-900/40 transition-all font-semibold font-orbitron text-[10px] tracking-wider uppercase active:scale-95">
+                    Nebula
+                </button>
+                <button id="btn-col-gold" class="py-1.5 rounded-lg border border-yellow-500/20 bg-yellow-950/20 text-yellow-400/70 hover:bg-yellow-900/30 transition-all font-semibold font-orbitron text-[10px] tracking-wider uppercase active:scale-95">
+                    Solaria
+                </button>
+                <button id="btn-col-astral" class="py-1.5 rounded-lg border border-cyan-500/20 bg-cyan-950/20 text-cyan-400/70 hover:bg-cyan-900/30 transition-all font-semibold font-orbitron text-[10px] tracking-wider uppercase active:scale-95">
+                    Ethereal
+                </button>
+            </div>
+        </div>
+
+        <!-- Interactive Guides / Instructions -->
+        <div class="bg-purple-950/40 border border-purple-500/10 rounded-xl p-3 text-xs text-gray-300 font-mono leading-relaxed flex flex-col gap-1.5">
+            <div class="flex items-center gap-1.5 text-purple-400 font-bold">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>CHRONO HARNESSING</span>
+            </div>
+            <p>Drag / Swipe inside the screen to warp gravity and ripple the vortex grid.</p>
+        </div>
+
+        <!-- ASCEND BUTTON -->
+        <button id="btn-ascend" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-orbitron font-bold text-sm tracking-widest shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all transform active:scale-[0.98] uppercase">
+            Ascend Dimension
+        </button>
+    </div>
+
+    <!-- BOTTOM SYSTEM STATS BAR -->
+    <div class="absolute bottom-6 left-6 pointer-events-none hidden md:flex flex-col gap-1 z-10 text-gray-400 font-mono text-xs">
+        <p>GRAV-INDEX: <span id="grav-idx" class="text-purple-400">0.024 Hz</span></p>
+        <p>DO-FIELD DEPTH: <span class="text-purple-400">f/1.2 Cinematic</span></p>
+        <p>PARTICLES RENDERED: <span class="text-purple-400">50,000 ACTIVE</span></p>
+    </div>
+
+    <!-- Error/Notice toast for UI updates -->
+    <div id="system-toast" class="absolute top-24 left-1/2 transform -translate-x-1/2 glass-panel border border-yellow-500/30 text-yellow-400 font-mono text-xs py-2 px-6 rounded-full opacity-0 transition-opacity duration-300 z-50">
+        COSMIC SURGE TRIGGERED - ANOMALY GENERATED
+    </div>
+
+    <!-- Load Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- MAIN SCENE LOGIC -->
+    <script>
+        // Pre-setup checks and state variables
+        let scene, camera, renderer, controls;
+        let particleSystem, volumetricRays, centralCore;
+        let particleMaterial, rayMaterial, coreMaterial;
+
+        // Custom parameters for real-time interaction
+        const config = {
+            baseSpeed: 0.18,
+            speedMultiplier: 1.0,
+            baseWarp: 1.0,
+            warpMultiplier: 1.0,
+            baseParticleSize: 1.0,
+            particleSizeMultiplier: 1.0,
+            colorTheme: 0, // 0: Nebula (violet/gold), 1: Solaria (pure gold/white), 2: Ethereal (cyan/white/purple)
+            surgeIntensity: 0.0,
+            targetSurge: 0.0
+        };
+
+        // Dimensions/Mouse coordinates tracking
+        let mouse = new THREE.Vector2(0, 0);
+        let targetMouse = new THREE.Vector2(0, 0);
+        let isPointerDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let warpStrength = 0.0;
+        let targetWarpStrength = 0.0;
+
+        // Init App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initScene();
+            initLights();
+            createSpiritualPortal();
+            createVolumetricRays();
+            createCentralCore();
+            initControls();
+            initUI();
+            animate();
+        });
+
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            
+            // Create Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030008, 0.015);
+
+            // Create Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 0, 16);
+
+            // Create Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
+            container.appendChild(renderer.domElement);
+
+            // Set up OrbitControls with limits for cinematic lock
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.04;
+            controls.rotateSpeed = 0.6;
+            controls.minDistance = 5;
+            controls.maxDistance = 30;
+            controls.enablePan = false; // Locking pan retains the spiral central composition
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function initLights() {
+            const ambientLight = new THREE.AmbientLight(0x0f0c1b, 0.5);
+            scene.add(ambientLight);
+
+            const centralLight = new THREE.PointLight(0xffaa44, 4, 25, 1.5);
+            centralLight.position.set(0, 0, 0);
+            scene.add(centralLight);
+        }
+
+        /* ----------------- CUSTOM GLSL SHADERS ----------------- */
+
+        // Vertex Shader for Cosmic Particles
+        const ParticleVertexShader = `
+            uniform float uTime;
+            uniform vec2 uMouse;
+            uniform float uWarp;
+            uniform float uPixelRatio;
+            uniform float uSizeMultiplier;
+            uniform int uColorTheme;
+            uniform float uSurge;
+
+            attribute float aSpeed;
+            attribute float aRadius;
+            attribute float aAngle;
+            attribute float aRand;
+
+            varying vec3 vColor;
+            varying float vDepth;
+            varying float vRadius;
+
+            void main() {
+                // Orbit mechanics with time propagation
+                float angle = aAngle + uTime * aSpeed * 0.45;
+                
+                // Breath effect mimicking dimensional expansion
+                float breath = sin(uTime * 1.5 + aRadius) * 0.08 * (1.0 + uSurge * 2.0);
+                float r = aRadius + breath;
+
+                // Funnel depth physics along the cosmic corridor (Z-axis)
+                // Curve is tighter at the core
+                float z = -pow(12.0 - r, 1.9) * 0.14 + (uSurge * 4.0 * (1.0 - (r/12.0)));
+
+                // Calculate base 3D coordinates
+                vec3 pos = vec3(cos(angle) * r, sin(angle) * r, z);
+
+                // Gravitational interactive warp based on pointer trajectory
+                vec2 mouseDist = pos.xy - uMouse * 8.5;
+                float dist = length(mouseDist);
+                // Radial distortion envelope
+                float force = exp(-dist * dist * 0.08) * uWarp * 3.8;
+                pos.xy += normalize(mouseDist) * force;
+
+                // Complex swirling disturbance
+                pos.x += sin(pos.z * 0.12 + uTime * 2.0) * 0.25;
+                pos.y += cos(pos.z * 0.12 + uTime * 2.0) * 0.25;
+
+                // Projected visual matrices
+                vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+
+                // CINEMATIC DEPTH OF FIELD (DOF) SIMULATION
+                // Virtual focal distance resides around 11.5 units
+                float depth = -mvPosition.z;
+                float focusDist = 11.5;
+                float dofFactor = abs(depth - focusDist) * 0.28;
+
+                // Base particle point scale using distance attenuation and DoF widening
+                gl_PointSize = (4.0 + dofFactor * 14.0) * (260.0 / -mvPosition.z) * uPixelRatio * uSizeMultiplier;
+                
+                // Keep points within visible bounding scales
+                gl_PointSize = clamp(gl_PointSize, 1.5, 95.0);
+
+                // Pass variables to fragment shader
+                vDepth = depth;
+                vRadius = r;
+
+                // COLOR PROFILES INTERPOLATION
+                // Theme 0: Deep Violet, Neon Gold, Pure White
+                vec3 violet = vec3(0.18, 0.01, 0.45);
+                vec3 neonGold = vec3(1.0, 0.62, 0.02);
+                vec3 brightWhite = vec3(1.0, 0.98, 0.92);
+
+                // Theme 1: Pure Gold, Amber Blaze, Star White
+                vec3 amber = vec3(0.5, 0.12, 0.0);
+                vec3 trueGold = vec3(1.0, 0.68, 0.1);
+                vec3 hotGold = vec3(1.0, 0.98, 0.7);
+
+                // Theme 2: Ethereal Cyan, Pale Violet, Ghostly White
+                vec3 spaceCyan = vec3(0.0, 0.48, 0.6);
+                vec3 ghostViolet = vec3(0.24, 0.0, 0.55);
+                vec3 silverWhite = vec3(0.85, 1.0, 0.95);
+
+                vec3 finalColor = vec3(0.0);
+                float radiusN = r / 12.0; // Normalized radius
+
+                if (uColorTheme == 0) {
+                    vec3 edgeCol = mix(violet, neonGold, smoothstep(1.0, 0.15, radiusN));
+                    finalColor = mix(edgeCol, brightWhite, smoothstep(0.3, 0.0, radiusN) * (sin(uTime * 2.5) * 0.2 + 0.8));
+                } else if (uColorTheme == 1) {
+                    vec3 edgeCol = mix(amber, trueGold, smoothstep(1.0, 0.25, radiusN));
+                    finalColor = mix(edgeCol, hotGold, smoothstep(0.4, 0.05, radiusN));
+                } else {
+                    vec3 edgeCol = mix(ghostViolet, spaceCyan, smoothstep(1.0, 0.1, radiusN));
+                    finalColor = mix(edgeCol, silverWhite, smoothstep(0.25, 0.0, radiusN) * (cos(uTime * 3.0) * 0.1 + 0.9));
+                }
+
+                // Add surge flash
+                finalColor = mix(finalColor, vec3(1.0, 1.0, 1.0), uSurge * 0.7 * (1.0 - radiusN));
+
+                vColor = finalColor;
+            }
+        `;
+
+        // Fragment Shader for Cosmic Particles (Produces soft, hazy circles for bokeh simulation)
+        const ParticleFragmentShader = `
+            varying vec3 vColor;
+            varying float vDepth;
+            varying float vRadius;
+
+            void main() {
+                // Determine screen pixel coordinate vector relative to center point
+                vec2 center = gl_PointCoord - vec2(0.5);
+                float dist = length(center);
+
+                // Cut off rectangular fragments
+                if (dist > 0.5) discard;
+
+                // Use distance from camera to simulate variable defocus blur
+                float focusDist = 11.5;
+                float blur = abs(vDepth - focusDist) * 0.18;
+                float edgeFalloff = 0.5 - clamp(blur, 0.0, 0.44);
+
+                // Build a gorgeous exponential fade simulating real lens aberration and light leakage
+                float intensity = smoothstep(0.5, edgeFalloff, dist);
+                
+                // Core brightness boost
+                float coreGlow = exp(-dist * 4.2) * 1.5;
+
+                gl_FragColor = vec4(vColor * (intensity + coreGlow), intensity * 0.95);
+            }
+        `;
+
+        // Shader for volumetric light rays
+        const VolumetricRayVertexShader = `
+            varying vec2 vUv;
+            varying float vDistToCenter;
+            void main() {
+                vUv = uv;
+                // Capture proximity to portal origin for smooth edge fade-out
+                vDistToCenter = length(position.xy);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const VolumetricRayFragmentShader = `
+            uniform float uTime;
+            uniform float uSurge;
+            uniform int uColorTheme;
+            varying vec2 vUv;
+            varying float vDistToCenter;
+
+            // Proc 2D Noise algorithm
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            }
+            float smoothNoise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+
+            void main() {
+                // Dynamic beam sliding coordinates
+                vec2 noiseUv = vec2(vUv.x * 12.0 - uTime * 0.45, vUv.y * 3.0);
+                float n = smoothNoise(noiseUv);
+                float n2 = smoothNoise(vec2(vUv.x * 20.0 + uTime * 0.8, vUv.y * 1.5));
+
+                // Blending noise frequencies together for complex shafts
+                float beams = pow(n * n2, 2.2) * (3.2 + uSurge * 4.5);
+
+                // Smooth linear falloffs for standard borders
+                float fadeX = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.45, vUv.x);
+                float fadeY = smoothstep(0.0, 0.4, vUv.y) * smoothstep(1.0, 0.4, vUv.y);
+
+                // Map colors according to current color spaces
+                vec3 rayCol = vec3(0.0);
+                if (uColorTheme == 0) {
+                    rayCol = mix(vec3(0.24, 0.02, 0.5), vec3(1.0, 0.62, 0.05), vUv.x);
+                } else if (uColorTheme == 1) {
+                    rayCol = mix(vec3(0.45, 0.15, 0.0), vec3(1.0, 0.75, 0.2), vUv.x);
+                } else {
+                    rayCol = mix(vec3(0.1, 0.0, 0.4), vec3(0.0, 0.7, 0.8), vUv.x);
+                }
+
+                // Add bright surge highlights
+                rayCol = mix(rayCol, vec3(1.0, 1.0, 1.0), uSurge * 0.5);
+
+                gl_FragColor = vec4(rayCol * beams, beams * fadeX * fadeY * 0.35);
+            }
+        `;
+
+        /* ----------------- ASSET CREATION ----------------- */
+
+        function createSpiritualPortal() {
+            const particleCount = 50000;
+            const positions = new Float32Array(particleCount * 3);
+            const speeds = new Float32Array(particleCount);
+            const radii = new Float32Array(particleCount);
+            const angles = new Float32Array(particleCount);
+            const rands = new Float32Array(particleCount);
+
+            for (let i = 0; i < particleCount; i++) {
+                // Distribute radii utilizing golden ratio/power curves
+                // Conforms major densities towards the black-hole event horizon
+                const u = Math.random();
+                const r = Math.pow(u, 2.3) * 11.6 + 0.4; 
+
+                // Setup multi-arm spiral orbits for aesthetic coherence
+                const armCount = 4;
+                const armIdx = Math.floor(Math.random() * armCount);
+                const baseAngle = (armIdx / armCount) * Math.PI * 2;
+                
+                // Twist angle propagation along radius distance
+                const twist = 3.6;
+                const angle = baseAngle + (r * twist) + (Math.random() - 0.5) * 0.38;
+
+                radii[i] = r;
+                angles[i] = angle;
+                rands[i] = Math.random();
+
+                // Near orbit velocities are radically higher (Kepler's Law simulation)
+                speeds[i] = (1.45 / Math.sqrt(r)) * (0.85 + Math.random() * 0.3);
+
+                // Set coordinates
+                positions[i * 3] = Math.cos(angle) * r;
+                positions[i * 3 + 1] = Math.sin(angle) * r;
+                positions[i * 3 + 2] = -Math.pow(12.0 - r, 1.9) * 0.14;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('aSpeed', new THREE.BufferAttribute(speeds, 1));
+            geometry.setAttribute('aRadius', new THREE.BufferAttribute(radii, 1));
+            geometry.setAttribute('aAngle', new THREE.BufferAttribute(angles, 1));
+            geometry.setAttribute('aRand', new THREE.BufferAttribute(rands, 1));
+
+            // Custom uniform buffer setup
+            particleMaterial = new THREE.ShaderMaterial({
+                vertexShader: ParticleVertexShader,
+                fragmentShader: ParticleFragmentShader,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uMouse: { value: new THREE.Vector2(0, 0) },
+                    uWarp: { value: 0 },
+                    uPixelRatio: { value: renderer.getPixelRatio() },
+                    uSizeMultiplier: { value: 1.0 },
+                    uColorTheme: { value: 0 },
+                    uSurge: { value: 0.0 }
+                },
+                transparent: true,
+                depthWrite: false, // Disabling prevents rendering artifacts/dark squares around additively blended objects
+                blending: THREE.AdditiveBlending
+            });
+
+            particleSystem = new THREE.Points(geometry, particleMaterial);
+            scene.add(particleSystem);
+        }
+
+        function createVolumetricRays() {
+            // Generate cross-intersecting double sided planes for light shafts
+            const rayGeometry = new THREE.CylinderGeometry(0.1, 8.0, 15.0, 32, 1, true);
+            // Translate origin to core base so the cone scales/spreads outwards
+            rayGeometry.translate(0, 7.5, 0);
+            rayGeometry.rotateX(Math.PI / 2); // Point towards the camera
+
+            rayMaterial = new THREE.ShaderMaterial({
+                vertexShader: VolumetricRayVertexShader,
+                fragmentShader: VolumetricRayFragmentShader,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uSurge: { value: 0.0 },
+                    uColorTheme: { value: 0 }
+                },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide
+            });
+
+            volumetricRays = new THREE.Mesh(rayGeometry, rayMaterial);
+            // Push slightly backward along Z axis to merge seamlessly inside the vortex core
+            volumetricRays.position.set(0, 0, -4);
+            scene.add(volumetricRays);
+        }
+
+        function createCentralCore() {
+            // Create event-horizon portal core structure
+            const geom = new THREE.SphereGeometry(0.65, 32, 32);
+            coreMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.95
+            });
+
+            centralCore = new THREE.Mesh(geom, coreMaterial);
+            centralCore.position.set(0, 0, -3.8);
+            scene.add(centralCore);
+
+            // Add outer core corona glow plane
+            const glowGeom = new THREE.PlaneGeometry(3.5, 3.5);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xe0a3ff,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide
+            });
+            const glowPlane = new THREE.Mesh(glowGeom, glowMaterial);
+            glowPlane.position.copy(centralCore.position);
+            scene.add(glowPlane);
+        }
+
+        /* ----------------- INTERACTIVE LOGIC & EVENT HANDLERS ----------------- */
+
+        function initControls() {
+            // Check pointer behaviors
+            const container = document.getElementById('canvas-container');
+            const indicator = document.getElementById('warp-indicator');
+
+            container.addEventListener('pointerdown', (e) => {
+                isPointerDown = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                indicator.style.opacity = '1';
+                indicator.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(1)`;
+            });
+
+            window.addEventListener('pointerup', () => {
+                isPointerDown = false;
+                targetWarpStrength = 0.0;
+                indicator.style.opacity = '0';
+                indicator.style.transform = `translate(${lastMouseX}px, ${lastMouseY}px) scale(0)`;
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                // Tracking coordinates scaled to normalized frame values [-1, 1]
+                const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+                targetMouse.set(mouseX, mouseY);
+
+                // Delta distance calculation to estimate drag speed and energy injection
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                const dragDistance = Math.sqrt(dx * dx + dy * dy);
+
+                if (isPointerDown) {
+                    targetWarpStrength = Math.min(dragDistance * 0.07, 3.8); // Cap maximum pull distortion
+                    indicator.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(${1.0 + (targetWarpStrength * 0.4)})`;
+                } else {
+                    // Gentle air-drag distortion on idle mouse hover
+                    targetWarpStrength = Math.min(dragDistance * 0.018, 0.75);
+                }
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                // Update real-time coordinates in HUD
+                const roundedX = (mouseX * 1000).toFixed(0);
+                const roundedY = (mouseY * 1000).toFixed(0);
+                document.getElementById('dim-coords').innerText = `X-${Math.abs(roundedX)} // Y-${Math.abs(roundedY)}`;
+            });
+        }
+
+        function initUI() {
+            // Resonance Range Slider
+            const rangeSlider = document.getElementById('portal-range');
+            const rangeVal = document.getElementById('range-val');
+            rangeSlider.addEventListener('input', (e) => {
+                config.warpMultiplier = parseFloat(e.target.value);
+                rangeVal.innerText = config.warpMultiplier.toFixed(1) + 'x';
+                updateSystemStats();
+            });
+
+            // Spin Speed Slider
+            const speedSlider = document.getElementById('portal-speed');
+            const speedVal = document.getElementById('speed-val');
+            speedSlider.addEventListener('input', (e) => {
+                config.speedMultiplier = parseFloat(e.target.value);
+                speedVal.innerText = config.speedMultiplier.toFixed(1) + 'x';
+                updateSystemStats();
+            });
+
+            // Particle Size Slider
+            const sizeSlider = document.getElementById('particle-size');
+            const sizeVal = document.getElementById('density-val');
+            sizeSlider.addEventListener('input', (e) => {
+                config.particleSizeMultiplier = parseFloat(e.target.value);
+                sizeVal.innerText = config.particleSizeMultiplier.toFixed(1) + 'x';
+                particleMaterial.uniforms.uSizeMultiplier.value = config.particleSizeMultiplier;
+            });
+
+            // Color Themes Buttons
+            const btnViolet = document.getElementById('btn-col-violet');
+            const btnGold = document.getElementById('btn-col-gold');
+            const btnAstral = document.getElementById('btn-col-astral');
+
+            function clearColorBorders() {
+                const btns = [btnViolet, btnGold, btnAstral];
+                btns.forEach(btn => {
+                    btn.classList.remove('border-purple-500/40', 'bg-purple-950/50', 'text-purple-300', 
+                                         'border-yellow-500/40', 'bg-yellow-950/50', 'text-yellow-400', 
+                                         'border-cyan-500/40', 'bg-cyan-950/50', 'text-cyan-400');
+                    btn.classList.add('border-white/10', 'bg-white/5', 'text-white/60');
+                });
+            }
+
+            btnViolet.addEventListener('click', () => {
+                config.colorTheme = 0;
+                particleMaterial.uniforms.uColorTheme.value = 0;
+                rayMaterial.uniforms.uColorTheme.value = 0;
+                clearColorBorders();
+                btnViolet.classList.remove('border-white/10', 'bg-white/5', 'text-white/60');
+                btnViolet.classList.add('border-purple-500/40', 'bg-purple-950/50', 'text-purple-300');
+            });
+
+            btnGold.addEventListener('click', () => {
+                config.colorTheme = 1;
+                particleMaterial.uniforms.uColorTheme.value = 1;
+                rayMaterial.uniforms.uColorTheme.value = 1;
+                clearColorBorders();
+                btnGold.classList.remove('border-white/10', 'bg-white/5', 'text-white/60');
+                btnGold.classList.add('border-yellow-500/40', 'bg-yellow-950/50', 'text-yellow-400');
+            });
+
+            btnAstral.addEventListener('click', () => {
+                config.colorTheme = 2;
+                particleMaterial.uniforms.uColorTheme.value = 2;
+                rayMaterial.uniforms.uColorTheme.value = 2;
+                clearColorBorders();
+                btnAstral.classList.remove('border-white/10', 'bg-white/5', 'text-white/60');
+                btnAstral.classList.add('border-cyan-500/40', 'bg-cyan-950/50', 'text-cyan-400');
+            });
+
+            // ASCEND SURGE BUTTON
+            const btnAscend = document.getElementById('btn-ascend');
+            btnAscend.addEventListener('click', () => {
+                // Trigger major camera warp zoom and uniform flash
+                config.targetSurge = 1.0;
+                showToast("CHRONO WARP DETECTED - SINGULARITY PEAKING");
+
+                // Temporary speed up
+                config.speedMultiplier = 3.5;
+                speedSlider.value = 3.5;
+                speedVal.innerText = '3.5x';
+
+                // Zoom camera closer and pull back slowly
+                let count = 0;
+                const zoomInterval = setInterval(() => {
+                    camera.position.z -= 0.16;
+                    count++;
+                    if (count >= 40) {
+                        clearInterval(zoomInterval);
+                        // Slow decay back zoom
+                        setTimeout(() => {
+                            let pullBackCount = 0;
+                            const pullInterval = setInterval(() => {
+                                camera.position.z += 0.08;
+                                pullBackCount++;
+                                if (pullBackCount >= 80) {
+                                    clearInterval(pullInterval);
+                                }
+                            }, 16);
+                        }, 1200);
+                    }
+                }, 10);
+            });
+        }
+
+        function updateSystemStats() {
+            const indexValue = (0.012 + (config.speedMultiplier * 0.01) + (config.warpMultiplier * 0.005)).toFixed(3);
+            document.getElementById('grav-idx').innerText = `${indexValue} Hz`;
+            
+            const stabilityFactor = (100.0 - (config.warpMultiplier * 3.5) - (config.speedMultiplier * 1.5)).toFixed(2);
+            const stabilityText = document.getElementById('stability-text');
+            stabilityText.innerText = `${stabilityFactor}%`;
+            
+            if (stabilityFactor < 80) {
+                stabilityText.className = "text-red-400 font-bold";
+            } else if (stabilityFactor < 92) {
+                stabilityText.className = "text-yellow-400 font-bold";
+            } else {
+                stabilityText.className = "text-green-400";
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('system-toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            particleMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+        }
+
+        /* ----------------- RENDER LOOP ----------------- */
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Smooth interpolation for mouse position
+            mouse.x += (targetMouse.x - mouse.x) * 0.08;
+            mouse.y += (targetMouse.y - mouse.y) * 0.08;
+
+            // Interpolate dynamic portal warp forces
+            warpStrength += (targetWarpStrength - warpStrength) * 0.06;
+
+            // Interpolate dimensional surge flash decay
+            if (config.targetSurge > 0.0) {
+                config.surgeIntensity += (config.targetSurge - config.surgeIntensity) * 0.12;
+                if (config.surgeIntensity > 0.98) {
+                    config.targetSurge = 0.0;
+                }
+            } else {
+                config.surgeIntensity += (0.0 - config.surgeIntensity) * 0.02;
+            }
+
+            // Update custom shader uniforms
+            const runTime = elapsedTime * config.baseSpeed * config.speedMultiplier;
+            
+            if (particleMaterial) {
+                particleMaterial.uniforms.uTime.value = runTime;
+                particleMaterial.uniforms.uMouse.value = mouse;
+                particleMaterial.uniforms.uWarp.value = warpStrength * config.warpMultiplier;
+                particleMaterial.uniforms.uSurge.value = config.surgeIntensity;
+            }
+
+            if (rayMaterial) {
+                rayMaterial.uniforms.uTime.value = elapsedTime * 0.5 * config.speedMultiplier;
+                rayMaterial.uniforms.uSurge.value = config.surgeIntensity;
+            }
+
+            // Central core pulsing animation
+            if (centralCore) {
+                const corePulse = 1.0 + Math.sin(elapsedTime * 3.0) * 0.08 + (config.surgeIntensity * 0.5);
+                centralCore.scale.set(corePulse, corePulse, corePulse);
+            }
+
+            // Slow cosmic system rotation
+            if (particleSystem) {
+                particleSystem.rotation.z = elapsedTime * 0.015 * config.speedMultiplier;
+            }
+            if (volumetricRays) {
+                // Opposing rotation adds deep interference patterns to light beams
+                volumetricRays.rotation.z = -elapsedTime * 0.02 * config.speedMultiplier;
+            }
+
+            // Update OrbitControls
+            controls.update();
+
+            // Render scene
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
