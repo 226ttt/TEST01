@@ -5,209 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Cosmic Star System</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        #ui-layer {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            z-index: 2;
-            pointer-events: none;
-        }
-        h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-        p {
-            margin: 5px 0 0 0;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; display: block; }
+        #ui-layer { position: absolute; bottom: 20px; left: 20px; color: rgba(255, 255, 255, 0.7); z-index: 2; pointer-events: none; }
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+        p { margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.8; }
 
-        /* --- เพิ่ม CSS สำหรับระบบป้ายข้อความ --- */
-        #labels-container {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            pointer-events: none; /* ให้คลิกทะลุไปโดน Canvas ด้านล่างได้ */
-            z-index: 10;
-            overflow: hidden;
-        }
-        .star-label {
-            position: absolute;
-            color: white;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 14px;
-            transform: translate(-50%, -100%);
-            pointer-events: auto; /* ให้คลิกที่ข้อความเพื่อแก้ไขภายหลังได้ */
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            white-space: nowrap;
-            backdrop-filter: blur(4px);
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        }
-        .star-input {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #66b3ff;
-            color: #fff;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-            pointer-events: auto;
-            outline: none;
-            z-index: 20;
-            transform: translate(-50%, -100%);
-        }
-        /* ---------------------------------- */
+        /* เลเยอร์สำหรับข้อความดาว */
+        #labels-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; overflow: hidden; }
+        .star-label { position: absolute; color: white; background: rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 6px; font-size: 14px; transform: translate(-50%, -100%); pointer-events: auto; border: 1px solid rgba(255, 255, 255, 0.4); white-space: nowrap; backdrop-filter: blur(4px); text-shadow: 0 1px 3px rgba(0,0,0,0.8); cursor: pointer; transition: background 0.2s; }
+        .star-label:hover { background: rgba(255, 255, 255, 0.3); }
+        
+        /* กล่องสำหรับพิมพ์ข้อความ */
+        .input-box { position: absolute; background: rgba(0, 0, 0, 0.9); border: 1px solid #66b3ff; padding: 10px; border-radius: 8px; z-index: 20; transform: translate(-50%, -110%); pointer-events: auto; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
+        .input-box input, .input-box textarea { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 4px; font-family: inherit; outline: none; user-select: text; pointer-events: auto; }
+        .input-box input:focus, .input-box textarea:focus { border-color: #66b3ff; }
     </style>
-    <!-- Load Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- เปลี่ยนจาก OrbitControls เป็น TrackballControls เพื่อให้หมุนตีลังกาได้ -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
 </head>
 <body>
 
     <div id="ui-layer">
         <h1>Cosmic Core</h1>
-        <p>Drag to rotate | Scroll to zoom</p>
+        <p>คลิกซ้ายลาก: หมุน | คลิกขวาลาก หรือ W,A,S,D: เลื่อนตำแหน่ง | ลูกกลิ้ง: ซูมพุ่งหาเมาส์อย่างอิสระ</p>
     </div>
     
     <div id="canvas-container"></div>
-    <div id="labels-container"></div> <!-- คอนเทนเนอร์สำหรับใส่ข้อความ -->
+    <div id="labels-container"></div>
 
     <script>
-        // Main initialization
-        let scene, camera, renderer, controls;
-        let starSystem, sunGlows = [];
-        let time = 0;
-
-        // --- เพิ่มตัวแปรสำหรับระบบคลิกและพิมพ์ข้อความ ---
+        let scene, camera, renderer, controls, starSystem;
         let raycaster = new THREE.Raycaster();
-        raycaster.params.Points.threshold = 10; // รัศมีความแม่นยำในการคลิกโดนดาว (ยิ่งมากยิ่งคลิกติดง่าย)
+        raycaster.params.Points.threshold = 15; 
         let mouse = new THREE.Vector2();
-        let labels = {}; // Object เก็บข้อมูลข้อความของดาวแต่ละดวง
+        let labels = {}; 
         let activeInput = null;
-        let pointerDownPos = {x: 0, y: 0};
-        // -----------------------------------------
 
-        window.onload = function() {
-            init();
-            animate();
-        };
+        let moveState = { up: 0, down: 0, left: 0, right: 0 };
+        
+        // ตัวแปรสำหรับระบบการซูมพุ่งหาเมาส์แบบสมูท
+        let targetZoomSpeed = 0;
+        let currentZoomSpeed = 0;
 
         function init() {
-            // 1. Scene Setup
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000000, 0.0005);
-
-            // 2. Camera Setup
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
+            // ขยายระยะการมองเห็นของกล้องเพื่อรองรับกาแล็กซีที่กว้างใหญ่ขึ้น
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 60000);
             camera.position.set(0, 300, 800);
-
-            // 3. Renderer Setup
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            // Enhanced rendering for glows
-            renderer.toneMapping = THREE.ReinhardToneMapping;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            // 4. TrackballControls Setup (หมุนอิสระแบบไร้แรงโน้มถ่วง)
-            controls = new THREE.TrackballControls(camera, renderer.domElement);
-            controls.rotateSpeed = 2.5;
-            controls.zoomSpeed = 1.2;
-            controls.panSpeed = 0.8;
-            controls.staticMoving = false; // ปิด static เพื่อให้มีการหน่วงแบบสมูท
-            controls.dynamicDampingFactor = 0.05;
-            controls.minDistance = 50;
-            controls.maxDistance = 2000;
-
-            // 5. Create Star System (50,000 particles)
-            createStarSystem();
-
-            // 6. Event Listeners
-            window.addEventListener('resize', onWindowResize, false);
             
-            // --- เพิ่ม Event Listeners สำหรับจับการคลิกดวงดาว ---
-            window.addEventListener('pointerdown', (e) => {
-                pointerDownPos = { x: e.clientX, y: e.clientY };
+            // ใช้ TrackballControls เฉพาะตอนหมุน (Rotate) และเลื่อน (Pan)
+            controls = new THREE.TrackballControls(camera, renderer.domElement);
+            controls.rotateSpeed = 4.0;        
+            controls.panSpeed = 5.0;           
+            controls.noZoom = true;            // ปิดระบบซูมดั้งเดิมที่วิ่งเข้าหาศูนย์กลาง
+            controls.staticMoving = false;     
+            controls.dynamicDampingFactor = 0.08; 
+            
+            createStarSystem();
+            
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('mousedown', onPointerDown, false); 
+            document.addEventListener('contextmenu', e => e.preventDefault()); 
+            
+            window.addEventListener('keydown', (e) => {
+                if (activeInput) return; 
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') moveState.up = 1;
+                if (key === 's' || key === 'arrowdown') moveState.down = 1;
+                if (key === 'a' || key === 'arrowleft') moveState.left = 1;
+                if (key === 'd' || key === 'arrowright') moveState.right = 1;
             });
-            window.addEventListener('pointerup', (e) => {
-                // คำนวณระยะห่างระหว่างจุดกดกับจุดปล่อย เพื่อแยกระหว่างการ "คลิก" กับการ "ลากหมุนจอ"
-                const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-                if (dist < 5) handleStarClick(e);
+            window.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') moveState.up = 0;
+                if (key === 's' || key === 'arrowdown') moveState.down = 0;
+                if (key === 'a' || key === 'arrowleft') moveState.left = 0;
+                if (key === 'd' || key === 'arrowright') moveState.right = 0;
             });
-            // ---------------------------------------------
+
+            // อัปเดตตำแหน่งเมาส์ตลอดเวลาเพื่อใช้เป็นพิกัดเป้าหมายในการพุ่ง
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            // ตรวจจับลูกกลิ้งเมาส์ เพื่อสะสมความเร็วในการพุ่ง
+            window.addEventListener('wheel', (e) => {
+                if (activeInput) return;
+                // เก็บสะสมความเร็ว (เลื่อนขึ้นติดลบ = พุ่งไปข้างหน้า)
+                targetZoomSpeed -= e.deltaY * 0.02; 
+            }, { passive: false });
+            
+            animate();
         }
 
-        // Generate a soft circular gradient texture for particles using HTML5 Canvas
         function createGlowTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
+            canvas.width = 64; canvas.height = 64;
             const context = canvas.getContext('2d');
-            
             const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-            // ปรับไล่สีใหม่ ให้แกนกลางดาวมีความคมชัด (ทึบแสง) และเรืองแสงที่ขอบ
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');      // จุดศูนย์กลางสว่างสุด
-            gradient.addColorStop(0.15, 'rgba(255, 255, 255, 1)');   // แกนกลางทึบคมชัด (ขยายขนาดแกน)
-            gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.4)'); // ขอบแกนกลาง
-            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');  // แสงฟุ้งกระจาย
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');            // จางหายไป
-
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');      
+            gradient.addColorStop(0.15, 'rgba(255, 255, 255, 1)');   
+            gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.4)'); 
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');  
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');            
             context.fillStyle = gradient;
             context.fillRect(0, 0, 64, 64);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            return texture;
+            return new THREE.CanvasTexture(canvas);
         }
 
         function createStarSystem() {
-            const particleCount = 50000;
+            // เพิ่มจำนวนดาวจาก 50,000 เป็น 1,000,000 ดวง (1 ล้านดวง)
+            const particleCount = 1000000; 
             const geometry = new THREE.BufferGeometry();
-            
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
             const sizes = new Float32Array(particleCount);
 
-            // ค่าสีของดวงดาวตามหลักสเปกตรัมจริง (O, B, A, F, G, K, M)
             const colorPalette = [
-                new THREE.Color(0x9bb0ff), // O: น้ำเงิน (ร้อนสุด พบน้อย)
-                new THREE.Color(0xaabfff), // B: ขาวอมฟ้า
-                new THREE.Color(0xcad7ff), // A: ขาว
-                new THREE.Color(0xf8f7ff), // F: ขาวอมเหลือง
-                new THREE.Color(0xfff4ea), // G: เหลือง (แบบดวงอาทิตย์ของเรา)
-                new THREE.Color(0xffd2a1), // K: ส้ม
-                new THREE.Color(0xffcc6f)  // M: แดงส้ม (เย็นสุด พบเยอะสุดในจักรวาล)
+                new THREE.Color(0x9bb0ff), 
+                new THREE.Color(0xaabfff), 
+                new THREE.Color(0xcad7ff), 
+                new THREE.Color(0xf8f7ff), 
+                new THREE.Color(0xfff4ea), 
+                new THREE.Color(0xffd2a1), 
+                new THREE.Color(0xffcc6f)  
             ];
 
             for (let i = 0; i < particleCount; i++) {
-                // Determine position using a spherical distribution (360 degrees)
-                // ปรับให้ดวงดาวกระจายตัวอย่างสม่ำเสมอทั่วพื้นที่ทรงกลม (Uniform Volume Distribution)
-                const radius = Math.cbrt(Math.random()) * 1500; 
-                
-                // Spherical coordinates for even distribution
+                // ขยายการกระจายตัวของดาวเพิ่มขึ้นอีก 100% (รัศมีจาก 4500 เป็น 9000)
+                const radius = Math.cbrt(Math.random()) * 9000; 
                 const u = Math.random();
                 const v = Math.random();
                 const theta = 2 * Math.PI * u;
@@ -217,18 +150,16 @@
                 positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
                 positions[i * 3 + 2] = radius * Math.cos(phi);
 
-                // สุ่มสีให้สมจริง (อิงตามความน่าจะเป็นของการพบดาวแต่ละชนิดในจักรวาล)
                 let colorBase;
                 const randColor = Math.random();
-                if (randColor > 0.99) colorBase = colorPalette[0];      // 1% น้ำเงิน
-                else if (randColor > 0.95) colorBase = colorPalette[1]; // 4% ขาวอมฟ้า
-                else if (randColor > 0.85) colorBase = colorPalette[2]; // 10% ขาว
-                else if (randColor > 0.70) colorBase = colorPalette[3]; // 15% ขาวอมเหลือง
-                else if (randColor > 0.50) colorBase = colorPalette[4]; // 20% เหลือง
-                else if (randColor > 0.25) colorBase = colorPalette[5]; // 25% ส้ม
-                else colorBase = colorPalette[6];                       // 25% แดงส้ม
+                if (randColor > 0.99) colorBase = colorPalette[0];      
+                else if (randColor > 0.95) colorBase = colorPalette[1]; 
+                else if (randColor > 0.85) colorBase = colorPalette[2]; 
+                else if (randColor > 0.70) colorBase = colorPalette[3]; 
+                else if (randColor > 0.50) colorBase = colorPalette[4]; 
+                else if (randColor > 0.25) colorBase = colorPalette[5]; 
+                else colorBase = colorPalette[6];                       
 
-                // โคลนสีเพื่อไม่ให้กระทบพาเลตต์ต้นฉบับ และเพิ่มความแปรปรวนของสีเล็กน้อย
                 let color = colorBase.clone();
                 color.lerp(new THREE.Color(0xffffff), Math.random() * 0.1);
 
@@ -236,18 +167,16 @@
                 colors[i * 3 + 1] = color.g;
                 colors[i * 3 + 2] = color.b;
 
-                // Size variation (เพิ่มขนาดขึ้นอีก 100% โดยคูณ 6.0)
-                sizes[i] = (Math.random() * 2 + 0.5) * 6.0;
+                // ขยายขนาดดาวเพิ่มขึ้นอีก 100% (จากคูณ 3.5 เป็น 7.0)
+                sizes[i] = (Math.random() * 2 + 0.5) * 7.0;
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-            // Custom Shader Material to handle varying sizes and soft texture
             const material = new THREE.ShaderMaterial({
                 uniforms: {
-                    uTime: { value: 0 },
                     uTexture: { value: createGlowTexture() }
                 },
                 vertexShader: `
@@ -257,8 +186,8 @@
                     void main() {
                         vColor = color;
                         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        // Depth effect on size
-                        gl_PointSize = size * (1000.0 / -mvPosition.z);
+                        // ย้อนกลับมาใช้ระบบคำนวณขนาดตามระยะห่าง (Depth effect)
+                        gl_PointSize = max(1.5, size * (1000.0 / -mvPosition.z));
                         gl_Position = projectionMatrix * mvPosition;
                     }
                 `,
@@ -277,132 +206,152 @@
 
             starSystem = new THREE.Points(geometry, material);
             scene.add(starSystem);
-            
-            // Add a subtle inclination to the system
-            starSystem.rotation.x = 0.1;
-            starSystem.rotation.z = -0.05;
         }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            controls.handleResize(); // จำเป็นต้องอัปเดตเมื่อใช้ TrackballControls
+            controls.handleResize();
         }
 
-        // --- เพิ่มฟังก์ชันจัดการการคลิก สร้างกล่องพิมพ์ และอัปเดตตำแหน่งข้อความ ---
-        function handleStarClick(event) {
-            if (activeInput) return; // หากกำลังพิมพ์อยู่ให้ข้ามการคลิกใหม่ไปก่อน
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
+        function onPointerDown(e) {
+            if(activeInput || e.target.tagName !== 'CANVAS') return;
+            if(e.button !== 0) return;
+            
             raycaster.setFromCamera(mouse, camera);
-            // ตรวจสอบว่าคลิกโดนดาวดวงไหนบ้าง
             const intersects = raycaster.intersectObject(starSystem);
-
+            
             if (intersects.length > 0) {
-                // เอาดาวดวงที่อยู่ใกล้ที่สุด (ดวงแรกใน array)
-                const index = intersects[0].index;
-                showInputForStar(index, event.clientX, event.clientY);
+                showInput(intersects[0].index, e.clientX, e.clientY);
             }
         }
 
-        function showInputForStar(index, clientX, clientY) {
-            const container = document.getElementById('labels-container');
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'star-input';
-            input.style.left = clientX + 'px';
-            input.style.top = clientY + 'px';
-            input.placeholder = 'ตั้งชื่อดวงดาว...';
-            
-            // หากดวงดาวนี้มีชื่ออยู่แล้ว ให้ลบป้ายเดิมแล้วเอาข้อความมาใส่กล่อง input (เพื่อแก้ไข)
-            if (labels[index]) {
-                input.value = labels[index].text;
-                labels[index].element.remove();
-                delete labels[index];
-            }
+        function showInput(index, x, y) {
+            controls.enabled = false;
 
-            container.appendChild(input);
-            input.focus();
-            activeInput = input;
+            const box = document.createElement('div');
+            box.className = 'input-box';
+            box.style.left = x + 'px'; box.style.top = y + 'px';
+            
+            const titleInput = document.createElement('input');
+            titleInput.placeholder = "หัวข้อ";
+            titleInput.value = labels[index] ? labels[index].title : "";
+            
+            const descInput = document.createElement('textarea');
+            descInput.placeholder = "เนื้อเรื่อง (ไม่แสดงบนจอ)";
+            descInput.value = labels[index] ? labels[index].desc : "";
+            
+            box.appendChild(titleInput);
+            box.appendChild(descInput);
+            document.body.appendChild(box);
+            activeInput = box;
 
-            // ฟังก์ชันจบการพิมพ์
-            const finishEdit = () => {
-                if (input.value.trim() !== "") saveLabel(index, input.value);
-                if (input.parentNode) input.remove();
+            const save = () => {
+                if (titleInput.value.trim()) {
+                    if (labels[index]) labels[index].element.remove();
+                    
+                    const label = document.createElement('div');
+                    label.className = 'star-label';
+                    label.innerText = titleInput.value;
+                    
+                    label.onmousedown = (ev) => {
+                        ev.stopPropagation(); 
+                        showInput(index, parseInt(label.style.left), parseInt(label.style.top));
+                    };
+
+                    document.getElementById('labels-container').appendChild(label);
+                    labels[index] = { title: titleInput.value, desc: descInput.value, element: label };
+                }
+                box.remove();
                 activeInput = null;
+                
+                controls.enabled = true;
             };
 
-            // บันทึกเมื่อกด Enter หรือคลิกพื้นที่อื่น
-            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEdit(); });
-            input.addEventListener('blur', finishEdit);
-        }
-
-        function saveLabel(index, text) {
-            const container = document.getElementById('labels-container');
-            const labelDiv = document.createElement('div');
-            labelDiv.className = 'star-label';
-            labelDiv.innerText = text;
-            container.appendChild(labelDiv);
-
-            // บันทึกข้อมูลป้ายพร้อม index ของดวงดาว เพื่อใช้อัปเดตตำแหน่ง
-            labels[index] = { text: text, element: labelDiv };
+            setTimeout(() => {
+                document.addEventListener('mousedown', function outsideClick(e) {
+                    if(!box.contains(e.target)) {
+                        save();
+                        document.removeEventListener('mousedown', outsideClick);
+                    }
+                });
+            }, 10);
+            
+            titleInput.focus();
         }
 
         function updateLabels() {
             if (!starSystem) return;
-            const positions = starSystem.geometry.attributes.position;
-            const tempVector = new THREE.Vector3();
-
-            for (const index in labels) {
-                const label = labels[index];
-                
-                // ดึงพิกัด 3D เดิมของดวงดาว
-                tempVector.fromBufferAttribute(positions, index);
-                // นำไปคูณกับเมทริกซ์การหมุนของกาแล็กซีปัจจุบัน
-                tempVector.applyMatrix4(starSystem.matrixWorld);
-                // โพรเจกต์พิกัด 3D แปลงเป็นพิกัดหน้าจอ (Screen Space)
-                tempVector.project(camera);
-
-                // ซ่อนข้อความหากดาวหลุดไปอยู่หลังกล้อง
-                if (tempVector.z > 1) {
-                    label.element.style.display = 'none';
+            const pos = starSystem.geometry.attributes.position;
+            const vec = new THREE.Vector3();
+            for (let i in labels) {
+                vec.fromBufferAttribute(pos, i).applyMatrix4(starSystem.matrixWorld).project(camera);
+                if (vec.z > 1) {
+                    labels[i].element.style.display = 'none'; 
                 } else {
-                    label.element.style.display = 'block';
-                    const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
-                    const y = -(tempVector.y * 0.5 - 0.5) * window.innerHeight;
-                    label.element.style.left = x + 'px';
-                    label.element.style.top = (y - 15) + 'px'; // ให้ป้ายลอยอยู่เหนือดาวเล็กน้อย
-                    // ปรับ z-index ให้ข้อความที่อยู่ใกล้บังข้อความที่อยู่ไกล
-                    label.element.style.zIndex = Math.floor((1 - tempVector.z) * 1000);
+                    labels[i].element.style.display = 'block';
+                    labels[i].element.style.left = ((vec.x * 0.5 + 0.5) * window.innerWidth) + 'px';
+                    labels[i].element.style.top = ((-(vec.y * 0.5 - 0.5) * window.innerHeight) - 15) + 'px';
+                    labels[i].element.style.zIndex = Math.floor((1 - vec.z) * 1000);
                 }
             }
         }
-        // ------------------------------------------------------------------
+
+        function handleKeyboardPan() {
+            if(activeInput) return;
+            if(moveState.up === 0 && moveState.down === 0 && moveState.left === 0 && moveState.right === 0) return;
+
+            const distance = camera.position.distanceTo(controls.target);
+            const speed = distance * 0.015; 
+
+            const panX = (moveState.right - moveState.left) * speed;
+            const panY = (moveState.up - moveState.down) * speed;
+
+            const vX = new THREE.Vector3();
+            const vY = new THREE.Vector3();
+            vX.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(panX);
+            vY.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(panY);
+
+            camera.position.add(vX).add(vY);
+            controls.target.add(vX).add(vY);
+        }
+
+        // ฟังก์ชันจัดการฟิสิกส์การพุ่งหาเมาส์ที่สมูท
+        function handleFlyZoom() {
+            // คำนวณแรงเฉื่อย ค่อยๆ ลดความเร็วเมื่อหยุดหมุนลูกกลิ้ง
+            currentZoomSpeed += (targetZoomSpeed - currentZoomSpeed) * 0.1;
+            targetZoomSpeed *= 0.85; // เบรกอย่างนุ่มนวล
+
+            if (Math.abs(currentZoomSpeed) > 0.01) {
+                // คำนวณเวกเตอร์ 3D ชี้จากกล้องไปหาตำแหน่งที่เมาส์อยู่บนหน้าจอ
+                const dir = new THREE.Vector3(mouse.x, mouse.y, 0.5).unproject(camera).sub(camera.position).normalize();
+                
+                // กำหนดความเร็วในการพุ่ง
+                const speed = currentZoomSpeed * 15.0;
+
+                // ขยับทั้งตัวกล้อง และ จุดที่กล้องมอง (target) ไปพร้อมๆ กัน
+                camera.position.addScaledVector(dir, speed);
+                controls.target.addScaledVector(dir, speed);
+            }
+        }
 
         function animate() {
             requestAnimationFrame(animate);
             
-            time += 0.01;
-
-            // 1. Slow cosmic rotation of the star system
-            // หยุดหมุนกาแล็กซีเมื่อกำลังพิมพ์ข้อความ (activeInput มีค่า)
-            if (starSystem && !activeInput) {
-                starSystem.rotation.y -= 0.0008; // Rotate entire galaxy
+            if (!activeInput && starSystem) {
+                starSystem.rotation.y -= 0.0008; 
             }
-
-            // 2. Update Controls for smooth dragging
+            
+            handleKeyboardPan();
+            handleFlyZoom(); // ใช้งานการซูมแบบพุ่งหาเมาส์
+            
             controls.update();
-
-            // 3. อัปเดตตำแหน่งป้ายข้อความให้ลอยตามดวงดาวแบบ Real-time
             updateLabels();
-
-            // 4. Render Scene
             renderer.render(scene, camera);
         }
+
+        init();
     </script>
 </body>
 </html>
