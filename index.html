@@ -3,528 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sci-Fi Spiritual Portal</title>
+    <title>3D Cosmic Star System</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
             background-color: #000;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
-        #info {
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-layer {
             position: absolute;
             bottom: 20px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.5);
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 2;
             pointer-events: none;
-            font-size: 14px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
             letter-spacing: 2px;
             text-transform: uppercase;
-            z-index: 100;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
-        canvas {
-            display: block;
-        }
-        #oracle-ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 320px;
-            background: rgba(10, 5, 25, 0.7);
-            border: 1px solid rgba(255, 184, 0, 0.3);
-            border-radius: 8px;
-            padding: 15px;
-            color: white;
-            z-index: 101;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
-        }
-        #oracle-ui h2 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            color: #FFB800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        #oracle-input {
-            width: 100%;
-            box-sizing: border-box;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            font-family: inherit;
-        }
-        #oracle-input:focus {
-            outline: none;
-            border-color: #3B008A;
-            box-shadow: 0 0 8px rgba(59, 0, 138, 0.8);
-        }
-        #oracle-btn {
-            width: 100%;
-            background: linear-gradient(45deg, #3B008A, #FFB800);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            letter-spacing: 1px;
-            transition: opacity 0.2s;
-        }
-        #oracle-btn:hover {
+        p {
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
             opacity: 0.8;
         }
-        #oracle-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+
+        /* --- เพิ่ม CSS สำหรับระบบป้ายข้อความ --- */
+        #labels-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none; /* ให้คลิกทะลุไปโดน Canvas ด้านล่างได้ */
+            z-index: 10;
+            overflow: hidden;
         }
-        #oracle-response {
-            margin-top: 15px;
+        .star-label {
+            position: absolute;
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 14px;
-            line-height: 1.5;
-            color: rgba(255, 255, 255, 0.9);
-            font-style: italic;
-            min-height: 20px;
+            transform: translate(-50%, -100%);
+            pointer-events: auto; /* ให้คลิกที่ข้อความเพื่อแก้ไขภายหลังได้ */
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            white-space: nowrap;
+            backdrop-filter: blur(4px);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
+        .star-input {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #66b3ff;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            pointer-events: auto;
+            outline: none;
+            z-index: 20;
+            transform: translate(-50%, -100%);
+        }
+        /* ---------------------------------- */
     </style>
-    <!-- Import maps polyfill -->
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
-    
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- เปลี่ยนจาก OrbitControls เป็น TrackballControls เพื่อให้หมุนตีลังกาได้ -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
 </head>
 <body>
-    <div id="info">Drag to Warp Space &bull; Scroll to Zoom</div>
-    
-    <div id="oracle-ui">
-        <h2>The Cosmic Oracle</h2>
-        <input type="text" id="oracle-input" placeholder="Seek wisdom from the void..." autocomplete="off">
-        <button id="oracle-btn">Consult the Void ✨</button>
-        <div id="oracle-response"></div>
+
+    <div id="ui-layer">
+        <h1>Cosmic Core</h1>
+        <p>Drag to rotate | Scroll to zoom</p>
     </div>
+    
+    <div id="canvas-container"></div>
+    <div id="labels-container"></div> <!-- คอนเทนเนอร์สำหรับใส่ข้อความ -->
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+    <script>
+        // Main initialization
+        let scene, camera, renderer, controls;
+        let starSystem, sunGlows = [];
+        let time = 0;
 
-        // --- Scene Setup ---
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050015, 0.015);
+        // --- เพิ่มตัวแปรสำหรับระบบคลิกและพิมพ์ข้อความ ---
+        let raycaster = new THREE.Raycaster();
+        raycaster.params.Points.threshold = 10; // รัศมีความแม่นยำในการคลิกโดนดาว (ยิ่งมากยิ่งคลิกติดง่าย)
+        let mouse = new THREE.Vector2();
+        let labels = {}; // Object เก็บข้อมูลข้อความของดาวแต่ละดวง
+        let activeInput = null;
+        let pointerDownPos = {x: 0, y: 0};
+        // -----------------------------------------
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 15, 35);
+        window.onload = function() {
+            init();
+            animate();
+        };
 
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
-        document.body.appendChild(renderer.domElement);
+        function init() {
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.0005);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
-        controls.maxDistance = 60;
-        controls.minDistance = 10;
-        // Dampen standard rotation to let the drag warp effect shine
-        controls.rotateSpeed = 0.4; 
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
+            camera.position.set(0, 300, 800);
 
-        // --- Particles (The Vortex) ---
-        const particleCount = 50000;
-        const geometry = new THREE.BufferGeometry();
-        
-        const positions = new Float32Array(particleCount * 3);
-        const randoms = new Float32Array(particleCount * 3);
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // Enhanced rendering for glows
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        for (let i = 0; i < particleCount; i++) {
-            const i3 = i * 3;
+            // 4. TrackballControls Setup (หมุนอิสระแบบไร้แรงโน้มถ่วง)
+            controls = new THREE.TrackballControls(camera, renderer.domElement);
+            controls.rotateSpeed = 2.5;
+            controls.zoomSpeed = 1.2;
+            controls.panSpeed = 0.8;
+            controls.staticMoving = false; // ปิด static เพื่อให้มีการหน่วงแบบสมูท
+            controls.dynamicDampingFactor = 0.05;
+            controls.minDistance = 50;
+            controls.maxDistance = 2000;
+
+            // 5. Create Star System (50,000 particles)
+            createStarSystem();
+
+            // 6. Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
             
-            // Create an accretion disk / funnel shape
-            const radius = Math.pow(Math.random(), 2.5) * 25; 
-            const angle = Math.random() * Math.PI * 2;
-            
-            // Height concentrated at center, spreading out slightly
-            const heightVariance = (Math.random() - 0.5) * 2.0;
-            // Creates the "funnel" dipping in the middle
-            const y = (Math.random() > 0.5 ? 1 : -1) * (1.0 / (radius + 0.5)) * 5.0 + heightVariance;
-
-            positions[i3] = Math.cos(angle) * radius;
-            positions[i3 + 1] = y;
-            positions[i3 + 2] = Math.sin(angle) * radius;
-
-            // Random values for animation phase and size
-            randoms[i3] = Math.random();
-            randoms[i3 + 1] = Math.random();
-            randoms[i3 + 2] = Math.random();
+            // --- เพิ่ม Event Listeners สำหรับจับการคลิกดวงดาว ---
+            window.addEventListener('pointerdown', (e) => {
+                pointerDownPos = { x: e.clientX, y: e.clientY };
+            });
+            window.addEventListener('pointerup', (e) => {
+                // คำนวณระยะห่างระหว่างจุดกดกับจุดปล่อย เพื่อแยกระหว่างการ "คลิก" กับการ "ลากหมุนจอ"
+                const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+                if (dist < 5) handleStarClick(e);
+            });
+            // ---------------------------------------------
         }
 
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 3));
+        // Generate a soft circular gradient texture for particles using HTML5 Canvas
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const context = canvas.getContext('2d');
+            
+            const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+            // ปรับไล่สีใหม่ ให้แกนกลางดาวมีความคมชัด (ทึบแสง) และเรืองแสงที่ขอบ
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');      // จุดศูนย์กลางสว่างสุด
+            gradient.addColorStop(0.15, 'rgba(255, 255, 255, 1)');   // แกนกลางทึบคมชัด (ขยายขนาดแกน)
+            gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.4)'); // ขอบแกนกลาง
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');  // แสงฟุ้งกระจาย
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');            // จางหายไป
 
-        // Custom Shader Material for particles
-        const particleMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uWarp: { value: new THREE.Vector2(0, 0) },
-                uColorViolet: { value: new THREE.Color(0x3B008A) }, // Deep Violet
-                uColorGold: { value: new THREE.Color(0xFFB800) },   // Neon Gold
-                uColorWhite: { value: new THREE.Color(0xFFFFFF) },  // Pure White
-            },
-            vertexShader: `
-                uniform float uTime;
-                uniform vec2 uWarp;
-                attribute vec3 aRandom;
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 64, 64);
 
-                varying vec3 vPosition;
-                varying float vRadius;
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
 
-                void main() {
-                    vec3 pos = position;
-                    
-                    // Cylindrical coordinates for vortex math
-                    float radius = length(pos.xz);
-                    float angle = atan(pos.z, pos.x);
+        function createStarSystem() {
+            const particleCount = 50000;
+            const geometry = new THREE.BufferGeometry();
+            
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const sizes = new Float32Array(particleCount);
 
-                    // Cosmic rotation (faster near center)
-                    float rotSpeed = uTime * (2.0 / (radius + 1.0));
-                    angle += rotSpeed;
+            // ค่าสีของดวงดาวตามหลักสเปกตรัมจริง (O, B, A, F, G, K, M)
+            const colorPalette = [
+                new THREE.Color(0x9bb0ff), // O: น้ำเงิน (ร้อนสุด พบน้อย)
+                new THREE.Color(0xaabfff), // B: ขาวอมฟ้า
+                new THREE.Color(0xcad7ff), // A: ขาว
+                new THREE.Color(0xf8f7ff), // F: ขาวอมเหลือง
+                new THREE.Color(0xfff4ea), // G: เหลือง (แบบดวงอาทิตย์ของเรา)
+                new THREE.Color(0xffd2a1), // K: ส้ม
+                new THREE.Color(0xffcc6f)  // M: แดงส้ม (เย็นสุด พบเยอะสุดในจักรวาล)
+            ];
 
-                    // Dynamic Warp based on mouse drag
-                    float warpIntensity = length(uWarp);
-                    if (warpIntensity > 0.0) {
-                        // Twist space around the Y axis based on drag magnitude and distance from center
-                        float falloff = exp(-radius * 0.15); // Warp affects center mostly
-                        
-                        // Twist angle
-                        angle += uWarp.x * falloff * 5.0;
-                        
-                        // Vertical displacement
-                        pos.y += uWarp.y * falloff * 10.0 * sin(uTime + radius);
-                        
-                        // Gravitational pull towards center during heavy warp
-                        radius -= warpIntensity * falloff * 2.0 * aRandom.y;
+            for (let i = 0; i < particleCount; i++) {
+                // Determine position using a spherical distribution (360 degrees)
+                // ปรับให้ดวงดาวกระจายตัวอย่างสม่ำเสมอทั่วพื้นที่ทรงกลม (Uniform Volume Distribution)
+                const radius = Math.cbrt(Math.random()) * 1500; 
+                
+                // Spherical coordinates for even distribution
+                const u = Math.random();
+                const v = Math.random();
+                const theta = 2 * Math.PI * u;
+                const phi = Math.acos(2 * v - 1);
+
+                positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = radius * Math.cos(phi);
+
+                // สุ่มสีให้สมจริง (อิงตามความน่าจะเป็นของการพบดาวแต่ละชนิดในจักรวาล)
+                let colorBase;
+                const randColor = Math.random();
+                if (randColor > 0.99) colorBase = colorPalette[0];      // 1% น้ำเงิน
+                else if (randColor > 0.95) colorBase = colorPalette[1]; // 4% ขาวอมฟ้า
+                else if (randColor > 0.85) colorBase = colorPalette[2]; // 10% ขาว
+                else if (randColor > 0.70) colorBase = colorPalette[3]; // 15% ขาวอมเหลือง
+                else if (randColor > 0.50) colorBase = colorPalette[4]; // 20% เหลือง
+                else if (randColor > 0.25) colorBase = colorPalette[5]; // 25% ส้ม
+                else colorBase = colorPalette[6];                       // 25% แดงส้ม
+
+                // โคลนสีเพื่อไม่ให้กระทบพาเลตต์ต้นฉบับ และเพิ่มความแปรปรวนของสีเล็กน้อย
+                let color = colorBase.clone();
+                color.lerp(new THREE.Color(0xffffff), Math.random() * 0.1);
+
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+
+                // Size variation (เพิ่มขนาดขึ้นอีก 100% โดยคูณ 6.0)
+                sizes[i] = (Math.random() * 2 + 0.5) * 6.0;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            // Custom Shader Material to handle varying sizes and soft texture
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uTexture: { value: createGlowTexture() }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        // Depth effect on size
+                        gl_PointSize = size * (1000.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
                     }
+                `,
+                fragmentShader: `
+                    uniform sampler2D uTexture;
+                    varying vec3 vColor;
+                    void main() {
+                        vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                        gl_FragColor = vec4(vColor, 1.0) * texColor;
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true
+            });
 
-                    // Convert back to Cartesian
-                    pos.x = cos(angle) * radius;
-                    pos.z = sin(angle) * radius;
+            starSystem = new THREE.Points(geometry, material);
+            scene.add(starSystem);
+            
+            // Add a subtle inclination to the system
+            starSystem.rotation.x = 0.1;
+            starSystem.rotation.z = -0.05;
+        }
 
-                    // Organic undulating movement
-                    pos.y += sin(uTime * 2.0 + radius * 0.5 + aRandom.z * 6.28) * 0.5 * (1.0 - exp(-radius*0.1));
-
-                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-                    gl_Position = projectionMatrix * mvPosition;
-
-                    // Size attenuation
-                    float baseSize = 8.0 * aRandom.x + 4.0;
-                    gl_PointSize = baseSize * (25.0 / -mvPosition.z);
-
-                    vPosition = pos;
-                    vRadius = radius;
-                }
-            `,
-            fragmentShader: `
-                uniform float uTime;
-                uniform vec3 uColorViolet;
-                uniform vec3 uColorGold;
-                uniform vec3 uColorWhite;
-
-                varying vec3 vPosition;
-                varying float vRadius;
-
-                void main() {
-                    // Create soft circular particles
-                    vec2 coord = gl_PointCoord - vec2(0.5);
-                    float dist = length(coord);
-                    if (dist > 0.5) discard;
-                    
-                    // Soft gradient edge
-                    float alpha = smoothstep(0.5, 0.1, dist);
-
-                    // Color mixing based on distance from core
-                    vec3 color = uColorViolet;
-                    
-                    // Mid section: Gold
-                    float mixGold = smoothstep(12.0, 3.0, vRadius);
-                    color = mix(color, uColorGold, mixGold);
-
-                    // Core: White hot
-                    float mixWhite = smoothstep(2.0, 0.0, vRadius);
-                    color = mix(color, uColorWhite, mixWhite);
-
-                    // Twinkling effect
-                    alpha *= 0.5 + 0.5 * sin(uTime * 5.0 + vPosition.x * 10.0);
-
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-        });
-
-        const particleSystem = new THREE.Points(geometry, particleMaterial);
-        scene.add(particleSystem);
-
-        // --- Volumetric Light Rays (Central Beam) ---
-        const beamGeometry = new THREE.CylinderGeometry(0.1, 4.0, 40, 32, 1, true);
-        const beamMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float uTime;
-                varying vec2 vUv;
-                void main() {
-                    // Fade out at top and bottom
-                    float alphaY = smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.7, vUv.y);
-                    
-                    // Fade out at edges to simulate cylindrical volume
-                    float centerDist = abs(vUv.x - 0.5) * 2.0;
-                    float alphaX = smoothstep(1.0, 0.0, centerDist);
-
-                    // Pulsing light simulation
-                    float pulse = 0.5 + 0.5 * sin(uTime * 3.0 - vUv.y * 10.0);
-                    
-                    // Ray striations/noise
-                    float noise = sin(vUv.x * 50.0 + uTime) * 0.1 + 0.9;
-
-                    float alpha = alphaX * alphaY * pulse * noise * 0.4;
-                    
-                    // Ethereal white/gold tint
-                    vec3 color = mix(vec3(1.0, 1.0, 1.0), vec3(1.0, 0.8, 0.4), centerDist);
-
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        });
-
-        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        scene.add(beam);
-
-        // --- Post-Processing Pipeline ---
-        const renderScene = new RenderPass(scene, camera);
-
-        // Bloom for glowing particles and rays
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.1;
-        bloomPass.strength = 1.8; // High strength for cinematic glow
-        bloomPass.radius = 0.5;
-
-        // Cinematic Depth of Field (Bokeh)
-        const bokehPass = new BokehPass(scene, camera, {
-            focus: 38.0,      // Focal distance (camera to center approx)
-            aperture: 0.0002, // Lens aperture
-            maxblur: 0.015,   // Blur strength
-            width: window.innerWidth,
-            height: window.innerHeight
-        });
-
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-        composer.addPass(bokehPass);
-
-        // --- Interaction Logic (Mouse Drag Warping) ---
-        let isDragging = false;
-        const targetWarp = new THREE.Vector2(0, 0);
-        const currentWarp = new THREE.Vector2(0, 0);
-
-        window.addEventListener('mousedown', () => { isDragging = true; });
-        window.addEventListener('mouseup', () => { isDragging = false; });
-        window.addEventListener('mouseleave', () => { isDragging = false; });
-
-        window.addEventListener('mousemove', (event) => {
-            if (isDragging) {
-                // Accumulate drag delta
-                targetWarp.x += event.movementX * 0.002;
-                targetWarp.y -= event.movementY * 0.002; // Invert Y
-            }
-        });
-
-        // Handle Touch for Mobile
-        let lastTouch = null;
-        window.addEventListener('touchstart', (e) => { 
-            isDragging = true; 
-            lastTouch = e.touches[0];
-        }, {passive: false});
-        
-        window.addEventListener('touchend', () => { 
-            isDragging = false; 
-            lastTouch = null;
-        });
-        
-        window.addEventListener('touchmove', (e) => {
-            if (isDragging && lastTouch) {
-                const touch = e.touches[0];
-                targetWarp.x += (touch.clientX - lastTouch.clientX) * 0.003;
-                targetWarp.y -= (touch.clientY - lastTouch.clientY) * 0.003;
-                lastTouch = touch;
-            }
-        }, {passive: false});
-
-        // --- Window Resize ---
-        window.addEventListener('resize', () => {
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-            // Update DoF aspect
-            bokehPass.uniforms['aspect'].value = camera.aspect;
-        });
+            controls.handleResize(); // จำเป็นต้องอัปเดตเมื่อใช้ TrackballControls
+        }
 
-        // --- Gemini API Oracle Integration ---
-        const apiKey = ""; // Provided by execution environment
-        const oracleBtn = document.getElementById('oracle-btn');
-        const oracleInput = document.getElementById('oracle-input');
-        const oracleResponse = document.getElementById('oracle-response');
-        
-        let isOracleThinking = false;
-        let portalCoreTargetColor = new THREE.Color(0xFFFFFF); // Default pure white
+        // --- เพิ่มฟังก์ชันจัดการการคลิก สร้างกล่องพิมพ์ และอัปเดตตำแหน่งข้อความ ---
+        function handleStarClick(event) {
+            if (activeInput) return; // หากกำลังพิมพ์อยู่ให้ข้ามการคลิกใหม่ไปก่อน
 
-        async function fetchWithRetry(url, options, retries = 5) {
-            const delays = [1000, 2000, 4000, 8000, 16000];
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return await response.json();
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                    await new Promise(res => setTimeout(res, delays[i]));
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            // ตรวจสอบว่าคลิกโดนดาวดวงไหนบ้าง
+            const intersects = raycaster.intersectObject(starSystem);
+
+            if (intersects.length > 0) {
+                // เอาดาวดวงที่อยู่ใกล้ที่สุด (ดวงแรกใน array)
+                const index = intersects[0].index;
+                showInputForStar(index, event.clientX, event.clientY);
+            }
+        }
+
+        function showInputForStar(index, clientX, clientY) {
+            const container = document.getElementById('labels-container');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'star-input';
+            input.style.left = clientX + 'px';
+            input.style.top = clientY + 'px';
+            input.placeholder = 'ตั้งชื่อดวงดาว...';
+            
+            // หากดวงดาวนี้มีชื่ออยู่แล้ว ให้ลบป้ายเดิมแล้วเอาข้อความมาใส่กล่อง input (เพื่อแก้ไข)
+            if (labels[index]) {
+                input.value = labels[index].text;
+                labels[index].element.remove();
+                delete labels[index];
+            }
+
+            container.appendChild(input);
+            input.focus();
+            activeInput = input;
+
+            // ฟังก์ชันจบการพิมพ์
+            const finishEdit = () => {
+                if (input.value.trim() !== "") saveLabel(index, input.value);
+                if (input.parentNode) input.remove();
+                activeInput = null;
+            };
+
+            // บันทึกเมื่อกด Enter หรือคลิกพื้นที่อื่น
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEdit(); });
+            input.addEventListener('blur', finishEdit);
+        }
+
+        function saveLabel(index, text) {
+            const container = document.getElementById('labels-container');
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'star-label';
+            labelDiv.innerText = text;
+            container.appendChild(labelDiv);
+
+            // บันทึกข้อมูลป้ายพร้อม index ของดวงดาว เพื่อใช้อัปเดตตำแหน่ง
+            labels[index] = { text: text, element: labelDiv };
+        }
+
+        function updateLabels() {
+            if (!starSystem) return;
+            const positions = starSystem.geometry.attributes.position;
+            const tempVector = new THREE.Vector3();
+
+            for (const index in labels) {
+                const label = labels[index];
+                
+                // ดึงพิกัด 3D เดิมของดวงดาว
+                tempVector.fromBufferAttribute(positions, index);
+                // นำไปคูณกับเมทริกซ์การหมุนของกาแล็กซีปัจจุบัน
+                tempVector.applyMatrix4(starSystem.matrixWorld);
+                // โพรเจกต์พิกัด 3D แปลงเป็นพิกัดหน้าจอ (Screen Space)
+                tempVector.project(camera);
+
+                // ซ่อนข้อความหากดาวหลุดไปอยู่หลังกล้อง
+                if (tempVector.z > 1) {
+                    label.element.style.display = 'none';
+                } else {
+                    label.element.style.display = 'block';
+                    const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = -(tempVector.y * 0.5 - 0.5) * window.innerHeight;
+                    label.element.style.left = x + 'px';
+                    label.element.style.top = (y - 15) + 'px'; // ให้ป้ายลอยอยู่เหนือดาวเล็กน้อย
+                    // ปรับ z-index ให้ข้อความที่อยู่ใกล้บังข้อความที่อยู่ไกล
+                    label.element.style.zIndex = Math.floor((1 - tempVector.z) * 1000);
                 }
             }
         }
-
-        async function consultOracle() {
-            const query = oracleInput.value.trim();
-            if (!query) return;
-
-            // Update UI State & Trigger Visuals
-            isOracleThinking = true;
-            oracleBtn.disabled = true;
-            oracleInput.disabled = true;
-            oracleResponse.innerText = "The void is listening...";
-            portalCoreTargetColor.setHex(0xFF0055); // Shift core to a neon pink/red warning hue
-
-            try {
-                // System Instruction to give the portal a specific, thematic personality
-                const systemPrompt = "You are the ancient intelligence residing within a Sci-Fi Spiritual Portal. A traveler approaches you seeking cosmic wisdom. Reply to their thought or question with a deeply profound, cryptic, and mystical answer. Keep it very brief, exactly 2 to 3 sentences. Speak as the cosmos itself.";
-                
-                const payload = {
-                    contents: [{ parts: [{ text: query }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] }
-                };
-
-                const result = await fetchWithRetry(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    }
-                );
-
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "The cosmos is currently unreachable. Try again.";
-                
-                // Typewriter effect for displaying the response
-                oracleResponse.innerText = "";
-                let i = 0;
-                const typeInterval = setInterval(() => {
-                    oracleResponse.innerText += text.charAt(i);
-                    i++;
-                    if (i >= text.length) clearInterval(typeInterval);
-                }, 40);
-
-            } catch (error) {
-                console.error("Oracle Error:", error);
-                oracleResponse.innerText = "A temporal anomaly disrupted the connection. Please try again.";
-            } finally {
-                // Reset State
-                isOracleThinking = false;
-                oracleBtn.disabled = false;
-                oracleInput.disabled = false;
-                oracleInput.value = "";
-                portalCoreTargetColor.setHex(0xFFFFFF); // Return core to pure white
-            }
-        }
-
-        oracleBtn.addEventListener('click', consultOracle);
-        oracleInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') consultOracle();
-        });
-
-        // --- Animation Loop ---
-        const clock = new THREE.Clock();
+        // ------------------------------------------------------------------
 
         function animate() {
             requestAnimationFrame(animate);
-
-            const time = clock.getElapsedTime();
             
+            time += 0.01;
+
+            // 1. Slow cosmic rotation of the star system
+            // หยุดหมุนกาแล็กซีเมื่อกำลังพิมพ์ข้อความ (activeInput มีค่า)
+            if (starSystem && !activeInput) {
+                starSystem.rotation.y -= 0.0008; // Rotate entire galaxy
+            }
+
+            // 2. Update Controls for smooth dragging
             controls.update();
 
-            // Calculate distance to center to adjust Depth of Field focus dynamically based on camera position
-            const distanceToCenter = camera.position.length();
-            bokehPass.uniforms['focus'].value = distanceToCenter;
+            // 3. อัปเดตตำแหน่งป้ายข้อความให้ลอยตามดวงดาวแบบ Real-time
+            updateLabels();
 
-            // Physics/Lerp for the Warp Effect
-            if (!isDragging) {
-                // Slowly decay target warp back to normal
-                targetWarp.lerp(new THREE.Vector2(0, 0), 0.03);
-            }
-            
-            // Limit maximum warp to prevent visual breakdown
-            targetWarp.x = THREE.MathUtils.clamp(targetWarp.x, -2.0, 2.0);
-            targetWarp.y = THREE.MathUtils.clamp(targetWarp.y, -2.0, 2.0);
-
-            // Smoothly interpolate current warp towards target warp
-            currentWarp.lerp(targetWarp, 0.1);
-
-            // Oracle Visual Feedback (Color and Bloom shifting based on API state)
-            particleMaterial.uniforms.uColorWhite.value.lerp(portalCoreTargetColor, 0.03);
-            const targetBloom = isOracleThinking ? 3.0 + Math.sin(time * 10.0) * 1.0 : 1.8;
-            bloomPass.strength = THREE.MathUtils.lerp(bloomPass.strength, targetBloom, 0.05);
-
-            // Update Shader Uniforms
-            particleMaterial.uniforms.uTime.value = time;
-            particleMaterial.uniforms.uWarp.value.copy(currentWarp);
-            beamMaterial.uniforms.uTime.value = time;
-
-            // Render via composer for post-processing effects
-            composer.render();
+            // 4. Render Scene
+            renderer.render(scene, camera);
         }
-
-        animate();
     </script>
 </body>
 </html>
