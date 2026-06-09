@@ -2,24 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Cosmic Star System</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; display: block; }
         #ui-layer { position: absolute; bottom: 20px; left: 20px; color: rgba(255, 255, 255, 0.7); z-index: 2; pointer-events: none; }
         h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
         p { margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.8; }
 
-        /* เลเยอร์สำหรับข้อความดาว */
         #labels-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; overflow: hidden; }
-        .star-label { position: absolute; color: white; background: rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 6px; font-size: 14px; transform: translate(-50%, -100%); pointer-events: auto; border: 1px solid rgba(255, 255, 255, 0.4); white-space: nowrap; backdrop-filter: blur(4px); text-shadow: 0 1px 3px rgba(0,0,0,0.8); cursor: pointer; transition: background 0.2s; }
-        .star-label:hover { background: rgba(255, 255, 255, 0.3); }
+        .star-label { position: absolute; color: white; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 6px; font-size: 16px; transform: translate(-50%, -100%); pointer-events: auto; border: 1px solid rgba(255, 255, 255, 0.4); white-space: nowrap; backdrop-filter: blur(4px); text-shadow: 0 1px 3px rgba(0,0,0,0.8); cursor: pointer; transition: background 0.2s, opacity 0.3s; opacity: 1; display: flex; flex-direction: column; align-items: center;}
+        .star-label:active { background: rgba(255, 255, 255, 0.3); }
         
-        /* กล่องสำหรับพิมพ์ข้อความ */
-        .input-box { position: absolute; background: rgba(0, 0, 0, 0.9); border: 1px solid #66b3ff; padding: 10px; border-radius: 8px; z-index: 20; transform: translate(-50%, -110%); pointer-events: auto; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); }
-        .input-box input, .input-box textarea { background: #222; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 4px; font-family: inherit; outline: none; user-select: text; pointer-events: auto; }
+        .coord-text { font-size: 10px; color: #88ccff; margin-top: 2px; font-family: monospace; letter-spacing: 0.5px; opacity: 0.8; }
+
+        .input-box { position: absolute; background: rgba(0, 0, 0, 0.95); border: 1px solid #66b3ff; padding: 15px; border-radius: 8px; z-index: 20; transform: translate(-50%, -110%); pointer-events: auto; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); width: 220px; }
+        .input-box input, .input-box textarea { background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 4px; font-family: inherit; outline: none; user-select: text; -webkit-user-select: text; pointer-events: auto; font-size: 16px; cursor: text; }
         .input-box input:focus, .input-box textarea:focus { border-color: #66b3ff; }
+        
+        .hologram-coord { font-family: monospace; font-size: 12px; color: #44ffaa; background: rgba(0, 50, 20, 0.5); padding: 5px 8px; border-radius: 4px; border: 1px dashed #44ffaa; text-align: center; margin-bottom: 5px; text-shadow: 0 0 5px #44ffaa; }
+
+        .save-btn { background: #66b3ff; color: #000; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
@@ -28,30 +32,38 @@
 
     <div id="ui-layer">
         <h1>Cosmic Core</h1>
-        <p>คลิกซ้ายลาก: หมุน | คลิกขวาลาก หรือ W,A,S,D: เลื่อนตำแหน่ง | ลูกกลิ้ง: ซูมพุ่งหาเมาส์อย่างอิสระ</p>
+        <p>แตะ/คลิกเพื่อปักหมุด | ลาก 1 นิ้ว: หมุน | จีบนิ้ว/ลูกกลิ้ง: ซูมทะยาน</p>
     </div>
     
     <div id="canvas-container"></div>
     <div id="labels-container"></div>
 
     <script>
-        let scene, camera, renderer, controls, starSystem;
+        let scene, camera, renderer, controls, starSystem, centralStar;
         let raycaster = new THREE.Raycaster();
-        raycaster.params.Points.threshold = 15; 
+        raycaster.params.Points.threshold = 30; 
         let mouse = new THREE.Vector2();
         let labels = {}; 
+        
         let activeInput = null;
+        let activeStarIndex = null; 
+        let targetFocusPos = null;  
 
         let moveState = { up: 0, down: 0, left: 0, right: 0 };
         
-        // ตัวแปรสำหรับระบบการซูมพุ่งหาเมาส์แบบสมูท
         let targetZoomSpeed = 0;
         let currentZoomSpeed = 0;
+        
+        let isDragging = false;
+        let mouseDownPos = { x: 0, y: 0 };
+        let touchStartPos = { x: 0, y: 0 };
+        let initialPinchDistance = null;
+
+        const UNIVERSE_RADIUS = 80000;
 
         function init() {
             scene = new THREE.Scene();
-            // ขยายระยะการมองเห็นของกล้องเพื่อรองรับกาแล็กซีที่กว้างใหญ่ขึ้น
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 60000);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 160000);
             camera.position.set(0, 300, 800);
             
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -59,22 +71,88 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
             
-            // ใช้ TrackballControls เฉพาะตอนหมุน (Rotate) และเลื่อน (Pan)
             controls = new THREE.TrackballControls(camera, renderer.domElement);
-            controls.rotateSpeed = 4.0;        
+            controls.rotateSpeed = 3.0;        
             controls.panSpeed = 5.0;           
-            controls.noZoom = true;            // ปิดระบบซูมดั้งเดิมที่วิ่งเข้าหาศูนย์กลาง
+            controls.noZoom = true; 
             controls.staticMoving = false;     
             controls.dynamicDampingFactor = 0.08; 
             
             createStarSystem();
+            createCentralStar(); 
             
             window.addEventListener('resize', onWindowResize, false);
-            document.addEventListener('mousedown', onPointerDown, false); 
-            document.addEventListener('contextmenu', e => e.preventDefault()); 
+            
+            document.addEventListener('mousedown', (e) => {
+                if (e.target.tagName !== 'CANVAS') return;
+                isDragging = false;
+                mouseDownPos.x = e.clientX;
+                mouseDownPos.y = e.clientY;
+            }, false); 
+            
+            document.addEventListener('mousemove', (e) => {
+                if (Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y) > 5) {
+                    isDragging = true;
+                }
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+            
+            document.addEventListener('mouseup', (e) => {
+                if (e.target.tagName !== 'CANVAS') return;
+                if (!isDragging) onPointerDown(e.clientX, e.clientY, e);
+            });
+            
+            document.addEventListener('contextmenu', e => {
+                if (e.target.tagName === 'CANVAS') e.preventDefault();
+            }); 
+            
+            document.addEventListener('touchstart', (e) => {
+                if (e.target.tagName !== 'CANVAS') return;
+                if(e.touches.length === 1) {
+                    isDragging = false;
+                    touchStartPos.x = e.touches[0].clientX;
+                    touchStartPos.y = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    mouse.x = (((e.touches[0].clientX + e.touches[1].clientX) / 2) / window.innerWidth) * 2 - 1;
+                    mouse.y = -(((e.touches[0].clientY + e.touches[1].clientY) / 2) / window.innerHeight) * 2 + 1;
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (e.target.tagName !== 'CANVAS') return;
+                if(e.touches.length === 1) {
+                    const dist = Math.hypot(e.touches[0].clientX - touchStartPos.x, e.touches[0].clientY - touchStartPos.y);
+                    if(dist > 10) isDragging = true; 
+                } else if (e.touches.length === 2) {
+                    const currentPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (initialPinchDistance) {
+                        const delta = currentPinchDistance - initialPinchDistance;
+                        targetZoomSpeed += delta * 0.05; 
+                    }
+                    initialPinchDistance = currentPinchDistance;
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', (e) => {
+                if (e.target.tagName !== 'CANVAS') return;
+                if(!isDragging && e.changedTouches.length === 1 && e.touches.length === 0) {
+                    onPointerDown(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e);
+                }
+                if (e.touches.length < 2) {
+                    initialPinchDistance = null;
+                }
+            });
             
             window.addEventListener('keydown', (e) => {
-                if (activeInput) return; 
+                if (activeInput) { e.stopPropagation(); return; }
                 const key = e.key.toLowerCase();
                 if (key === 'w' || key === 'arrowup') moveState.up = 1;
                 if (key === 's' || key === 'arrowdown') moveState.down = 1;
@@ -82,6 +160,7 @@
                 if (key === 'd' || key === 'arrowright') moveState.right = 1;
             });
             window.addEventListener('keyup', (e) => {
+                if (activeInput) return;
                 const key = e.key.toLowerCase();
                 if (key === 'w' || key === 'arrowup') moveState.up = 0;
                 if (key === 's' || key === 'arrowdown') moveState.down = 0;
@@ -89,17 +168,9 @@
                 if (key === 'd' || key === 'arrowright') moveState.right = 0;
             });
 
-            // อัปเดตตำแหน่งเมาส์ตลอดเวลาเพื่อใช้เป็นพิกัดเป้าหมายในการพุ่ง
-            window.addEventListener('mousemove', (e) => {
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            });
-
-            // ตรวจจับลูกกลิ้งเมาส์ เพื่อสะสมความเร็วในการพุ่ง
             window.addEventListener('wheel', (e) => {
                 if (activeInput) return;
-                // เก็บสะสมความเร็ว (เลื่อนขึ้นติดลบ = พุ่งไปข้างหน้า)
-                targetZoomSpeed -= e.deltaY * 0.02; 
+                targetZoomSpeed -= e.deltaY * 0.08; 
             }, { passive: false });
             
             animate();
@@ -120,83 +191,122 @@
             return new THREE.CanvasTexture(canvas);
         }
 
+        function createCentralStar() {
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
+            
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTexture: { value: createGlowTexture() },
+                    uTime: { value: 0.0 }
+                },
+                vertexShader: `
+                    uniform float uTime;
+                    void main() {
+                        float pulsatingSize = 450.0 + sin(uTime * 2.0) * 45.0; 
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = max(1.5, pulsatingSize * (1000.0 / -mvPosition.z));
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D uTexture;
+                    void main() {
+                        vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                        gl_FragColor = vec4(1.0, 0.8, 0.4, 1.0) * texColor * 1.5; 
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true
+            });
+
+            centralStar = new THREE.Points(geometry, material);
+            scene.add(centralStar);
+        }
+
         function createStarSystem() {
-            // เพิ่มจำนวนดาวจาก 50,000 เป็น 1,000,000 ดวง (1 ล้านดวง)
-            const particleCount = 1000000; 
+            const particleCount = 2000000; 
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
             const sizes = new Float32Array(particleCount);
+            const indices = new Float32Array(particleCount);
 
             const colorPalette = [
-                new THREE.Color(0x9bb0ff), 
-                new THREE.Color(0xaabfff), 
-                new THREE.Color(0xcad7ff), 
-                new THREE.Color(0xf8f7ff), 
-                new THREE.Color(0xfff4ea), 
-                new THREE.Color(0xffd2a1), 
-                new THREE.Color(0xffcc6f)  
+                new THREE.Color(0x9bb0ff), new THREE.Color(0xaabfff), new THREE.Color(0xcad7ff), 
+                new THREE.Color(0xf8f7ff), new THREE.Color(0xfff4ea), new THREE.Color(0xffd2a1), new THREE.Color(0xffcc6f)  
             ];
 
+            const spread = 4500 * 16; 
+            const minRadius = 150; 
+
             for (let i = 0; i < particleCount; i++) {
-                // ขยายการกระจายตัวของดาวเพิ่มขึ้นอีก 100% (รัศมีจาก 4500 เป็น 9000)
-                const radius = Math.cbrt(Math.random()) * 9000; 
-                const u = Math.random();
-                const v = Math.random();
-                const theta = 2 * Math.PI * u;
-                const phi = Math.acos(2 * v - 1);
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = minRadius + Math.pow(Math.random(), 1 / 3) * (spread - minRadius);
 
-                positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-                positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-                positions[i * 3 + 2] = radius * Math.cos(phi);
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
 
-                let colorBase;
                 const randColor = Math.random();
-                if (randColor > 0.99) colorBase = colorPalette[0];      
-                else if (randColor > 0.95) colorBase = colorPalette[1]; 
-                else if (randColor > 0.85) colorBase = colorPalette[2]; 
-                else if (randColor > 0.70) colorBase = colorPalette[3]; 
-                else if (randColor > 0.50) colorBase = colorPalette[4]; 
-                else if (randColor > 0.25) colorBase = colorPalette[5]; 
-                else colorBase = colorPalette[6];                       
+                let colorBase = randColor > 0.99 ? colorPalette[0] : randColor > 0.95 ? colorPalette[1] : randColor > 0.85 ? colorPalette[2] : randColor > 0.70 ? colorPalette[3] : randColor > 0.50 ? colorPalette[4] : randColor > 0.25 ? colorPalette[5] : colorPalette[6];
+                let color = colorBase.clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.1);
 
-                let color = colorBase.clone();
-                color.lerp(new THREE.Color(0xffffff), Math.random() * 0.1);
-
-                colors[i * 3] = color.r;
-                colors[i * 3 + 1] = color.g;
-                colors[i * 3 + 2] = color.b;
-
-                // ขยายขนาดดาวเพิ่มขึ้นอีก 100% (จากคูณ 3.5 เป็น 7.0)
-                sizes[i] = (Math.random() * 2 + 0.5) * 7.0;
+                colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+                // ขยายขนาดดาวอีก 3 เท่า
+                sizes[i] = (Math.random() * 2 + 0.5) * 45.0;
+                indices[i] = i; 
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            geometry.setAttribute('vertexIndex', new THREE.BufferAttribute(indices, 1));
 
             const material = new THREE.ShaderMaterial({
                 uniforms: {
-                    uTexture: { value: createGlowTexture() }
+                    uTexture: { value: createGlowTexture() },
+                    uActiveIndex: { value: -1.0 }, 
+                    uTime: { value: 0.0 }          
                 },
                 vertexShader: `
                     attribute float size;
                     attribute vec3 color;
+                    attribute float vertexIndex;
+                    uniform float uActiveIndex;
+                    uniform float uTime;
                     varying vec3 vColor;
+                    varying float vIsActive;
+                    varying float vOpacity;
                     void main() {
                         vColor = color;
+                        vIsActive = 0.0;
+                        float currentSize = size;
+                        if (abs(vertexIndex - uActiveIndex) < 0.1) {
+                            vIsActive = 1.0;
+                            currentSize = size * (8.0 + sin(uTime * 8.0) * 3.0); 
+                        }
                         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        // ย้อนกลับมาใช้ระบบคำนวณขนาดตามระยะห่าง (Depth effect)
-                        gl_PointSize = max(1.5, size * (1000.0 / -mvPosition.z));
+                        float distance = -mvPosition.z;
+                        float fadeIn = smoothstep(800.0, 2500.0, distance);
+                        float fadeOut = smoothstep(60000.0, 20000.0, distance);
+                        vOpacity = fadeIn * fadeOut;
+                        gl_PointSize = max(1.5, currentSize * (1000.0 / distance));
                         gl_Position = projectionMatrix * mvPosition;
                     }
                 `,
                 fragmentShader: `
                     uniform sampler2D uTexture;
                     varying vec3 vColor;
+                    varying float vIsActive;
+                    varying float vOpacity;
                     void main() {
+                        if (vOpacity < 0.01) discard;
                         vec4 texColor = texture2D(uTexture, gl_PointCoord);
-                        gl_FragColor = vec4(vColor, 1.0) * texColor;
+                        vec3 finalColor = vIsActive > 0.5 ? mix(vColor, vec3(1.0, 1.0, 1.0), 0.9) : vColor;
+                        gl_FragColor = vec4(finalColor, vOpacity) * texColor;
                     }
                 `,
                 blending: THREE.AdditiveBlending,
@@ -205,6 +315,8 @@
             });
 
             starSystem = new THREE.Points(geometry, material);
+            starSystem.rotation.x = 0.3;
+            starSystem.rotation.z = 0.15;
             scene.add(starSystem);
         }
 
@@ -215,82 +327,127 @@
             controls.handleResize();
         }
 
-        function onPointerDown(e) {
-            if(activeInput || e.target.tagName !== 'CANVAS') return;
-            if(e.button !== 0) return;
-            
+        function onPointerDown(clientX, clientY, e) {
+            if(activeInput || (e.target && e.target.tagName !== 'CANVAS')) return;
+            if(e.button !== undefined && e.button !== 0) return; 
+            let rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ( ( clientX - rect.left ) / rect.width ) * 2 - 1;
+            mouse.y = - ( ( clientY - rect.top ) / rect.height ) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(starSystem);
-            
-            if (intersects.length > 0) {
-                showInput(intersects[0].index, e.clientX, e.clientY);
-            }
+            if (intersects.length > 0) showInput(intersects[0].index);
         }
 
-        function showInput(index, x, y) {
+        function showInput(index) {
             controls.enabled = false;
-
+            activeStarIndex = index;
+            let coordText = ""; 
+            if(starSystem) {
+                starSystem.material.uniforms.uActiveIndex.value = index;
+                const pos = starSystem.geometry.attributes.position;
+                targetFocusPos = new THREE.Vector3().fromBufferAttribute(pos, index).applyMatrix4(starSystem.matrixWorld);
+                coordText = `X:${Math.round(targetFocusPos.x)} Y:${Math.round(targetFocusPos.y)} Z:${Math.round(targetFocusPos.z)}`;
+            }
             const box = document.createElement('div');
             box.className = 'input-box';
-            box.style.left = x + 'px'; box.style.top = y + 'px';
-            
+            const coordDisplay = document.createElement('div');
+            coordDisplay.className = 'hologram-coord';
+            coordDisplay.innerText = coordText; 
+            box.appendChild(coordDisplay);
             const titleInput = document.createElement('input');
             titleInput.placeholder = "หัวข้อ";
             titleInput.value = labels[index] ? labels[index].title : "";
-            
+            titleInput.addEventListener('mousedown', e => e.stopPropagation());
             const descInput = document.createElement('textarea');
             descInput.placeholder = "เนื้อเรื่อง (ไม่แสดงบนจอ)";
+            descInput.rows = 3;
             descInput.value = labels[index] ? labels[index].desc : "";
-            
+            descInput.addEventListener('mousedown', e => e.stopPropagation());
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-btn';
+            saveBtn.innerText = 'บันทึก / ปิด';
             box.appendChild(titleInput);
             box.appendChild(descInput);
+            box.appendChild(saveBtn);
             document.body.appendChild(box);
             activeInput = box;
-
+            updateActiveInputPosition();
             const save = () => {
                 if (titleInput.value.trim()) {
                     if (labels[index]) labels[index].element.remove();
-                    
                     const label = document.createElement('div');
                     label.className = 'star-label';
-                    label.innerText = titleInput.value;
-                    
-                    label.onmousedown = (ev) => {
-                        ev.stopPropagation(); 
-                        showInput(index, parseInt(label.style.left), parseInt(label.style.top));
-                    };
-
+                    const titleSpan = document.createElement('span');
+                    titleSpan.innerText = titleInput.value;
+                    label.appendChild(titleSpan);
+                    const coordSpan = document.createElement('span');
+                    coordSpan.className = 'coord-text';
+                    coordSpan.innerText = coordText; 
+                    label.appendChild(coordSpan);
+                    label.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); showInput(index); });
                     document.getElementById('labels-container').appendChild(label);
                     labels[index] = { title: titleInput.value, desc: descInput.value, element: label };
                 }
                 box.remove();
                 activeInput = null;
-                
-                controls.enabled = true;
+                activeStarIndex = null;
+                targetFocusPos = null;
+                if(starSystem && starSystem.material.uniforms.uActiveIndex.value === index) starSystem.material.uniforms.uActiveIndex.value = -1.0;
+                setTimeout(() => controls.enabled = true, 100); 
             };
-
+            saveBtn.onclick = save;
             setTimeout(() => {
-                document.addEventListener('mousedown', function outsideClick(e) {
-                    if(!box.contains(e.target)) {
-                        save();
-                        document.removeEventListener('mousedown', outsideClick);
-                    }
+                document.addEventListener('pointerdown', function outsideClick(e) {
+                    if(activeInput && !box.contains(e.target)) { save(); document.removeEventListener('pointerdown', outsideClick); }
                 });
-            }, 10);
-            
+            }, 50);
             titleInput.focus();
+        }
+        
+        function updateActiveInputPosition() {
+            if (!activeInput || activeStarIndex === null || !starSystem) return;
+            const pos = starSystem.geometry.attributes.position;
+            const vec = new THREE.Vector3().fromBufferAttribute(pos, activeStarIndex).applyMatrix4(starSystem.matrixWorld).project(camera);
+            let boxX = ((vec.x * 0.5 + 0.5) * window.innerWidth);
+            let boxY = ((-(vec.y * 0.5 - 0.5) * window.innerHeight)) - 10;
+            if(boxX < 120) boxX = 120;
+            if(boxX > window.innerWidth - 120) boxX = window.innerWidth - 120;
+            activeInput.style.left = boxX + 'px';
+            activeInput.style.top = boxY + 'px';
+        }
+
+        function handleAutoCenter() {
+            if (activeStarIndex !== null && starSystem) {
+                const pos = starSystem.geometry.attributes.position;
+                targetFocusPos = new THREE.Vector3().fromBufferAttribute(pos, activeStarIndex).applyMatrix4(starSystem.matrixWorld);
+            }
+            if (targetFocusPos) {
+                const diff = targetFocusPos.clone().sub(controls.target);
+                const dist = diff.length();
+                if (dist > 1.0) {
+                    const step = diff.multiplyScalar(0.08); 
+                    controls.target.add(step);
+                    camera.position.add(step);
+                } else controls.target.copy(targetFocusPos);
+            }
         }
 
         function updateLabels() {
             if (!starSystem) return;
             const pos = starSystem.geometry.attributes.position;
             const vec = new THREE.Vector3();
+            const starPos = new THREE.Vector3();
+            const MAX_VISIBLE_DISTANCE = 20000; 
             for (let i in labels) {
-                vec.fromBufferAttribute(pos, i).applyMatrix4(starSystem.matrixWorld).project(camera);
-                if (vec.z > 1) {
-                    labels[i].element.style.display = 'none'; 
+                starPos.fromBufferAttribute(pos, i).applyMatrix4(starSystem.matrixWorld);
+                const distanceToCamera = camera.position.distanceTo(starPos);
+                vec.copy(starPos).project(camera);
+                if (vec.z > 1 || distanceToCamera > MAX_VISIBLE_DISTANCE) {
+                    labels[i].element.style.opacity = '0'; 
+                    labels[i].element.style.pointerEvents = 'none'; 
                 } else {
-                    labels[i].element.style.display = 'block';
+                    labels[i].element.style.opacity = '1'; 
+                    labels[i].element.style.pointerEvents = 'auto'; 
                     labels[i].element.style.left = ((vec.x * 0.5 + 0.5) * window.innerWidth) + 'px';
                     labels[i].element.style.top = ((-(vec.y * 0.5 - 0.5) * window.innerHeight) - 15) + 'px';
                     labels[i].element.style.zIndex = Math.floor((1 - vec.z) * 1000);
@@ -301,53 +458,52 @@
         function handleKeyboardPan() {
             if(activeInput) return;
             if(moveState.up === 0 && moveState.down === 0 && moveState.left === 0 && moveState.right === 0) return;
-
             const distance = camera.position.distanceTo(controls.target);
             const speed = distance * 0.015; 
-
             const panX = (moveState.right - moveState.left) * speed;
             const panY = (moveState.up - moveState.down) * speed;
-
-            const vX = new THREE.Vector3();
-            const vY = new THREE.Vector3();
-            vX.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(panX);
-            vY.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(panY);
-
+            const vX = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0).multiplyScalar(panX);
+            const vY = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1).multiplyScalar(panY);
             camera.position.add(vX).add(vY);
             controls.target.add(vX).add(vY);
         }
 
-        // ฟังก์ชันจัดการฟิสิกส์การพุ่งหาเมาส์ที่สมูท
         function handleFlyZoom() {
-            // คำนวณแรงเฉื่อย ค่อยๆ ลดความเร็วเมื่อหยุดหมุนลูกกลิ้ง
             currentZoomSpeed += (targetZoomSpeed - currentZoomSpeed) * 0.1;
-            targetZoomSpeed *= 0.85; // เบรกอย่างนุ่มนวล
-
+            targetZoomSpeed *= 0.85; 
             if (Math.abs(currentZoomSpeed) > 0.01) {
-                // คำนวณเวกเตอร์ 3D ชี้จากกล้องไปหาตำแหน่งที่เมาส์อยู่บนหน้าจอ
                 const dir = new THREE.Vector3(mouse.x, mouse.y, 0.5).unproject(camera).sub(camera.position).normalize();
-                
-                // กำหนดความเร็วในการพุ่ง
-                const speed = currentZoomSpeed * 15.0;
-
-                // ขยับทั้งตัวกล้อง และ จุดที่กล้องมอง (target) ไปพร้อมๆ กัน
+                const speed = currentZoomSpeed * 60.0; 
                 camera.position.addScaledVector(dir, speed);
                 controls.target.addScaledVector(dir, speed);
             }
         }
 
+        function enforceBoundaries() {
+            const distanceFromCenter = camera.position.length();
+            if (distanceFromCenter > UNIVERSE_RADIUS) {
+                const pullFactor = (distanceFromCenter - UNIVERSE_RADIUS) * 0.05;
+                const pullDirection = camera.position.clone().normalize().negate();
+                camera.position.addScaledVector(pullDirection, pullFactor);
+                controls.target.addScaledVector(pullDirection, pullFactor);
+                targetZoomSpeed *= 0.5;
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
-            
-            if (!activeInput && starSystem) {
-                starSystem.rotation.y -= 0.0008; 
+            if (centralStar) centralStar.material.uniforms.uTime.value += 0.03;
+            if (starSystem) {
+                starSystem.material.uniforms.uTime.value += 0.03;
+                starSystem.rotation.y -= 0.0003; 
             }
-            
+            handleAutoCenter();    
             handleKeyboardPan();
-            handleFlyZoom(); // ใช้งานการซูมแบบพุ่งหาเมาส์
-            
+            handleFlyZoom(); 
+            enforceBoundaries(); 
             controls.update();
             updateLabels();
+            updateActiveInputPosition(); 
             renderer.render(scene, camera);
         }
 
